@@ -1,6 +1,6 @@
-# 🎓 OS Final Exam Prep & Course Archive (Operating Systems)
+# 🎓 OS Final Exam Prep Web App (Operating Systems)
 
-คลังเนื้อหา สรุปบทเรียน และเว็บแอปพลิเคชันสำหรับเตรียมสอบปลายภาควิชาระบบปฏิบัติการ (Operating Systems) แบบโต้ตอบได้จริง (Interactive Web App)
+เว็บแอปพลิเคชันสำหรับเตรียมสอบปลายภาควิชาระบบปฏิบัติการ (Operating Systems) แบบโต้ตอบได้จริง (Interactive Web App) พร้อมระบบจำลองอัลกอริทึมและแบบทดสอบประเมินผล
 
 🔗 **เข้าสู่ระบบติวสอบออนไลน์ผ่าน GitHub Pages:**  
 👉 **[https://yopatcharapol.github.io/final_OS/](https://yopatcharapol.github.io/final_OS/)**
@@ -9,7 +9,7 @@
 
 ## 🌟 ฟีเจอร์เด่นในระบบติวสอบปลายภาค (`Final_Exam_Prep/`)
 
-### 1. 🏦 Interactive Banker's Algorithm Visual Simulator (ใหม่!)
+### 1. 🏦 Interactive Banker's Algorithm Visual Simulator
 * **ก้าวทีละขั้นตอน (Step-by-Step):** กด `Next` หรือ `Prev` เพื่อดูการสแกนหา Safe Sequence ทีละโปรเซส
 * **สูตรคณิตศาสตร์เวกเตอร์สด:** แสดงการเปรียบเทียบ $\text{Need} \le \text{Work}$ แยกแกน $A, B, C$ และสูตรคืนทรัพยากร $\text{Work}_{\text{new}} = \text{Work}_{\text{old}} + \text{Allocation}$
 * **แอนิเมชันไฮไลท์แถว:** แถวที่กำลังตรวจ (`👉`), แถวที่ผ่าน (`✔`), และแถวที่พักไว้ก่อน (`⏳`)
@@ -29,16 +29,14 @@
 
 ---
 
-## 📁 โครงสร้างโปรเจกต์ (Repository Structure)
+## 📁 โครงสร้างโปรเจกต์เว็บแอปพลิเคชัน
 
 ```text
 ├── Final_Exam_Prep/          # เว็บแอปสรุปติวสอบปลายภาค (HTML5 / CSS3 / Vanilla JS)
 │   ├── index.html            # โครงสร้างหน้าเว็บ บทที่ 5-8, Advanced, Calculators, Quiz
 │   ├── style.css             # Glassmorphism Design System & Dark/Light Themes
-│   └── app.js                # Interactive Engine, Banker Simulator, EMAT & Quiz Logic
-├── 01_Lectures/              # สไลด์และเอกสารการบรรยายในห้องเรียน
-├── 02_Homework/              # การบ้าน แบบฝึกหัด และเฉลย
-├── 03_Term_Report/           # รายงาน Term Report ฉบับสมบูรณ์ พร้อมรูปภาพและผลการทดลอง
-├── index.html                # หน้า Redirect หลักสำหรับ GitHub Pages
+│   ├── app.js                # Interactive Engine, Banker Simulator, EMAT & Quiz Logic
+│   └── assets/images/        # รูปภาพแผนผังกราฟและไดอะแกรมทั้งหมด
+├── index.html                # หน้า Auto-Redirect สำหรับ GitHub Pages
 └── README.md                 # คู่มือและเอกสารประกอบโปรเจกต์
 ```

@@ -1,6 +1,13 @@
+# Local course archives and personal documents (do not track in git)
+01_Lectures/
+02_Homework/
+03_Term_Report/
+
+# Temporary & System files
 *.tmp
 *.log
 .DS_Store
 Thumbs.db
 Desktop.ini
 .vscode/
+__pycache__/
