@@ -1,0 +1,138 @@
+=== Paragraph 674 ===
+ในภาษา C11 ประกาศใช้ผ่านคีย์เวิร์ด _Thread_local (หรือ __thread ใน GCC) และ thread_local ใน C++11 ในระดับฮาร์ดแวร์ x86-64 สถาปัตยกรรมจัดการพื้นที่ TLS ผ่าน Segment Register พิเศษ ได้แก่ รีจิสเตอร์ %fs บน Linux และ %gs บน Windows โดยเคอร์เนลจะตั้งค่า Base Address ของเซกเมนต์ให้ชี้ไปยังบล็อก TLS ของแต่ละเธรด การเข้าถึงตัวแปร TLS จึงกระทำผ่าน Memory Offset ที่สัมพันธ์กับ Segment Register ได้อย่างรวดเร็วเทียบเท่าการเข้าถึงตัวแปร Local บนสแตก
+
+=== Paragraph 675 ===
+7.5 สถาปัตยกรรมเธรดพูล (Thread Pools Architecture)
+
+=== Paragraph 676 ===
+ในระบบบริการเครือข่ายและเซิร์ฟเวอร์ การสร้างเธรดใหม่ตามคำขอของผู้ใช้แบบไม่จำกัด (Unbounded Thread Creation) นำไปสู่ปัญหาความเสี่ยง 2 ประการ: ค่าโสหุ้ยจากการสร้างและทำลายเธรดซ้ำซ้อน และวิกฤตหน่วยความจำหมดลง (Out-of-Memory / Resource Exhaustion) เมื่อมีคำขอเข้าพร้อมกันหลักหมื่นรายการ สถาปัตยกรรม "เธรดพูล" (Thread Pool) จึงถูกพัฒนาขึ้นเป็นเกราะป้องกัน [Silberschatz et al., 2018]
+
+=== Paragraph 677 ===
+หลักการทำงานและองค์ประกอบเชิงวิศวกรรม:
+
+=== Paragraph 678 ===
+1. Task Queue: คิวงานส่วนกลางแบบ FIFO ที่ได้รับการป้องกันด้วย Mutex และ Condition Variable ทำหน้าที่รับคำขอจากไคลเอนต์มาจัดเก็บไว้
+
+=== Paragraph 679 ===
+2. Worker Threads: กลุ่มเธรดขนาดคงที่ (Core Pool Size) ที่ถูกสร้างขึ้นเตรียมไว้ล่วงหน้า เธรดเหล่านี้จะแย่งกันดึงงานออกจากคิวไปประมวลผล และเมื่อเสร็จสิ้นจะส่งตนเองกลับมารอรับงานใหม่ในพูลโดยไม่ถูกทำลายทิ้ง
+
+=== Paragraph 680 ===
+3. กลไกการควบคุม Backpressure และ Saturation Policy: ในระบบระดับองค์กร คิวงานจะต้องมีการจำกัดขนาดสูงสุด (Bounded Queue) หากคำขอเข้ามาล้นคิว ระบบจะมีนโยบายรับมือ เช่น Caller-Runs (ให้เธรดผู้ส่งเป็นผู้ประมวลผลเองเพื่อชะลออัตราการส่ง) หรือ Abort เพื่อป้องกันไม่ให้หน่วยความจำของเซิร์ฟเวอร์ล้นจนระบบล่ม [Silberschatz et al., 2018]
+
+=== Paragraph 681 ===
+บทที่ 8: กรณีศึกษาระดับเคอร์เนล: การวิเคราะห์เปรียบเทียบ Linux vs Windows (Kernel Case Studies)
+
+=== Paragraph 682 ===
+8.1 มัลติเธรดในระบบปฏิบัติการ Linux: ปรัชญา "Everything is a Task"
+
+=== Paragraph 683 ===
+ระบบปฏิบัติการ Linux มีปรัชญาการออกแบบระดับเคอร์เนลที่เรียบง่ายแต่ทรงพลัง โดย "เคอร์เนลของ Linux ไม่มีการแบ่งแยกความแตกต่างระหว่างโพรเซสและเธรด" หน่วยของการประมวลผลและการจัดตารางเวลาทั้งหมดจะถูกมองเป็นเพียง "ภารกิจ" (Task) ภายใต้โครงสร้างข้อมูล task_struct เดียวกันทั้งหมด [Love, 2010]
+
+=== Paragraph 684 ===
+ความแตกต่างระหว่างโพรเซสดั้งเดิมกับเธรดใน Linux เกิดขึ้นจาก "ระดับการแบ่งปันทรัพยากร" ผ่านตัวชี้ใน task_struct: โครงสร้าง mm_struct *mm (พื้นที่หน่วยความจำเสมือนและ Page Tables), files_struct *files (ตารางไฟล์ที่เปิด), fs_struct *fs (ระบบไฟล์และไดเรกทอรีราก), และ sighand_struct *sighand (ตารางจัดการสัญญาณ) [Bovet & Cesati, 2005]
+
+=== Paragraph 685 ===
+หัวใจสำคัญคือซิสเต็มคอล clone() ซึ่งเปิดโอกาสให้ผู้เรียกกำหนดแฟล็กการแบ่งปันทรัพยากรได้อย่างยืดหยุ่น: การสร้างเธรดด้วยไลบรารี NPTL (pthread_create) จะเรียกใช้ clone() พร้อมแฟล็กหลักได้แก่ CLONE_VM (แชร์ Memory), CLONE_FS (แชร์ FS), CLONE_FILES (แชร์ Open Files), CLONE_SIGHAND (แชร์ Signals), และ CLONE_THREAD ซึ่งบังคับให้ Task ลูกถูกจัดเข้าเป็นสมาชิกใน Thread Group เดียวกันกับ Task แม่ และมี Thread Group ID (TGID) เดียวกัน ส่งผลให้ฟังก์ชัน getpid() ส่งคืนค่า PID ของโพรเซสแม่เดียวกัน [Love, 2010]
+
+=== Paragraph 686 ===
+วิวัฒนาการสู่ clone3() ในเคอร์เนลร่วมสมัย: ใน Linux 5.3 ขึ้นไป ได้มีการเพิ่มซิสเต็มคอล clone3() ซึ่งเปลี่ยนจากการส่งพารามิเตอร์ผ่านรีจิสเตอร์ มาเป็นการส่งผ่านโครงสร้างข้อมูล struct clone_args เพื่อรองรับแฟล็กควบคุมขนาดใหญ่และเปิดทางให้กำหนด Control Groups (cgroups) ได้ตั้งแต่จังหวะแรกสร้างเธรด
+
+=== Paragraph 687 ===
+ระบบจัดตารางเวลา Completely Fair Scheduler (CFS) และ EEVDF:
+
+=== Paragraph 688 ===
+Linux 6.5 ใช้ตัวจัดตารางเวลา CFS ซึ่งทำงานบนแนวคิดความยุติธรรมผ่านตัวแปรเวลาเสมือน vruntime (Virtual Runtime) ตามสูตรทางคณิตศาสตร์:
+
+=== Paragraph 689 ===
+\Delta \text{vruntime} = \Delta \text{exec\_time} \times \left( \frac{\text{NICE\_0\_LOAD}}{\text{weight}} \right)
+
+=== Paragraph 690 ===
+งานที่มีระดับความสำคัญสูง (Nice value ต่ำ น้ำหนัก weight มาก) เวลา vruntime จะเดินช้ากว่างานความสำคัญต่ำ งานที่พร้อมประมวลผลจะถูกจัดเก็บไว้ในโครงสร้างต้นไม้ Red-Black Tree จัดเรียงตามค่า vruntime จากน้อยไปมาก ซีพียูจะเลือกดึงงานทางซ้ายสุดที่ถูกแคชไว้ในพอยน์เตอร์ rb_leftmost มาทำงานด้วยความเร็ว O(1) และแทรกกลับคืนด้วยความเร็ว O(\log N) เมื่อถึง Linux 6.6 เป็นต้นไป เคอร์เนลได้เริ่มเปลี่ยนผ่านสถาปัตยกรรม Fair Scheduling สู่ EEVDF (Earliest Eligible Virtual Deadline First) เพื่อลดความหน่วงเวลาและจัดการ Deadline ของงานเชิงตอบสนองได้อย่างแม่นยำยิ่งขึ้น [Linux Kernel Documentation, n.d.]
+
+=== Paragraph 691 ===
+8.2 มัลติเธรดในระบบปฏิบัติการ Microsoft Windows
+
+=== Paragraph 692 ===
+แตกต่างจากปรัชญาของ Linux เคอร์เนลของ Microsoft Windows (สถาปัตยกรรม Windows NT จนถึง Windows 11) ถูกออกแบบภายใต้โครงสร้างเชิงวัตถุ (Object-Oriented) ที่แบ่งแยกชั้นการทำงานและโครงสร้างข้อมูลของโพรเซสและเธรดออกจากกันอย่างเด็ดขาด [Yosifovich et al., 2017]
+
+=== Paragraph 693 ===
+โครงสร้างเธรดแบบสองระดับชั้นใน Windows Kernel:
+
+=== Paragraph 694 ===
+1. KTHREAD (Kernel Thread Block): อยู่ในระดับ Microkernel Layer บรรจุข้อมูลพื้นฐานสำหรับการจัดตารางเวลา ได้แก่ สถานะรีจิสเตอร์ซีพียู, สแตกพอยน์เตอร์เคอร์เนล, ลำดับความสำคัญ (Priority 0–31), สถานะเธรด (Ready, Running, Standby, Waiting), โครงสร้าง Processor Affinity Mask, และโควตาเวลา (Scheduling Quantum)
+
+=== Paragraph 695 ===
+2. ETHREAD (Executive Thread Block): อยู่ในระดับ Executive Layer ทำหน้าที่ห่อหุ้มโครงสร้าง KTHREAD ไว้อีกชั้นหนึ่ง บรรจุข้อมูลการจัดการระดับสูง เช่น Process ID, Thread ID, แอดเดรสเริ่มต้นของเธรด, สิทธิ์ความปลอดภัย (Access / Impersonation Security Token), โครงสร้าง I/O Pending Requests List, และการเชื่อมต่อกับ Asynchronous I/O Completion Ports (IOCP) [Yosifovich et al., 2017]
+
+=== Paragraph 696 ===
+กลไก Fibers และ User-Mode Scheduling (UMS): Windows ยังสนับสนุนกลไก Concurrency ทางเลือกที่เรียกว่า "Fibers" ซึ่งเป็นการสลับบริบทในระดับ User-Mode แบบสมัครใจ (Cooperative) ผ่านคำสั่ง SwitchToFiber() โดยโปรแกรมเมอร์ อย่างไรก็ดี ไฟเบอร์ทั้งหมดจะยังคงรันอยู่บนโฮสต์ Kernel Thread หากเธรดโฮสต์ถูกบล็อกด้วย I/O ไฟเบอร์ทั้งหมดจะหยุดชะงักตามไปด้วย ส่วน UMS เป็นกลไก User-Mode Scheduler ที่ได้รับการสนับสนุนจากเคอร์เนลใน Windows รุ่นก่อนหน้า แต่ไม่มีการรองรับบน Windows 11 อีกต่อไป [Microsoft, n.d.]
+
+=== Paragraph 697 ===
+8.3 สถาปัตยกรรมฮาร์ดแวร์ขั้นสูง: ระบบ Non-Uniform Memory Access (NUMA)
+
+=== Paragraph 698 ===
+ในสถาปัตยกรรมเซิร์ฟเวอร์ขนาดใหญ่หลายซ็อกเก็ต ผู้ผลิตได้เปลี่ยนจากการใช้ Symmetric Multiprocessing (SMP) มาใช้สถาปัตยกรรม Non-Uniform Memory Access (NUMA) โดยซีพียูแต่ละกลุ่ม (NUMA Node) จะมีหน่วยความจำแรมเป็นของตนเอง (Local Memory) ซึ่งเข้าถึงได้ด้วยความเร็วสูงสุด แต่หากเธรดต้องการเข้าถึงแรมของโหนดอื่น (Remote Memory) จะต้องส่งข้อมูลผ่าน Interconnect Bus (เช่น Intel UPI หรือ AMD Infinity Fabric) ซึ่งมี Latency สูงกว่าปกติ 2 ถึง 3 เท่าตัว [Lameter, 2013]
+
+=== Paragraph 699 ===
+นโยบายการจัดสรรหน่วยความจำและ CPU Pinning เชิงวิศวกรรม:
+
+=== Paragraph 700 ===
+เพื่อป้องกันการสูญเสียประสิทธิภาพจากการที่เคอร์เนลย้ายเธรดข้ามโหนดไปมา (Core Migration) วิศวกรระบบสามารถควบคุมความผูกพันของเธรดและนโยบายหน่วยความจำได้โดยตรงผ่านกลไกต่อไปนี้:
+
+=== Paragraph 701 ===
+1. นโยบายการจัดสรรหน่วยความจำใน Linux NUMA: เคอร์เนลมีนโยบายหลัก 4 รูปแบบผ่านคำสั่ง numactl: (1) MPOL_BIND บังคับจัดสรรแรมเฉพาะบนโหนดที่กำหนดอย่างเข้มงวด, (2) MPOL_INTERLEAVE กระจายเพจหน่วยความจำสลับข้ามโหนดแบบ Round-robin เพื่อเฉลี่ยแบนด์วิดท์, (3) MPOL_PREFERRED พยายามจัดสรรบนโหนดที่ต้องการก่อน หากเต็มจึงข้ามไปโหนดอื่น, และ (4) MPOL_DEFAULT จัดสรรบนโหนดเดียวกับซีพียูที่รันโค้ดนั้น (First-touch Allocation Policy) [Lameter, 2013]
+
+=== Paragraph 702 ===
+2. การควบคุมผ่านซอร์สโค้ดในภาษา C: เรียกใช้ฟังก์ชัน pthread_setaffinity_np() ร่วมกับโครงสร้าง cpu_set_t เพื่อกำหนด CPU Affinity Mask ของแต่ละเธรดอย่างละเอียด การทำ Core Pinning ช่วยรักษาความอุ่นของแคช L1/L2 และลดความแปรปรวนของเวลาประมวลผล (Deterministic Latency) ได้อย่างมีนัยสำคัญ [Love, 2010]
+
+=== Paragraph 703 ===
+8.4 การวิเคราะห์เปรียบเทียบสถาปัตยกรรมระดับเคอร์เนล: Linux vs. Windows
+
+=== Paragraph 704 ===
+ตารางที่ 8.1 สรุปการเปรียบเทียบเชิงวิศวกรรมระหว่างระบบมัลติเธรดของเคอร์เนล Linux และ Windows:
+
+=== Paragraph 705 ===
+ตารางที่ 8.1: การเปรียบเทียบสถาปัตยกรรมมัลติเธรดระหว่าง Linux และ Windows
+
+=== Paragraph 706 ===
+มิติทางสถาปัตยกรรม
+
+=== Paragraph 707 ===
+ระบบปฏิบัติการ Linux (NPTL)
+
+=== Paragraph 708 ===
+ระบบปฏิบัติการ Windows (NT Kernel)
+
+=== Paragraph 709 ===
+ปรัชญาพื้นฐาน
+
+=== Paragraph 710 ===
+Everything is a Task ไม่แยกโพรเซส/เธรดในเคอร์เนล
+
+=== Paragraph 711 ===
+Object-Oriented แบ่งแยกโพรเซสและเธรดชัดเจน
+
+=== Paragraph 712 ===
+โครงสร้างข้อมูลหลัก
+
+=== Paragraph 713 ===
+โครงสร้างเดี่ยว task_struct (จัดกลุ่มด้วย TGID)
+
+=== Paragraph 714 ===
+สองชั้น: ETHREAD ห่อหุ้ม KTHREAD
+
+=== Paragraph 715 ===
+ซิสเต็มคอลการสร้าง
+
+=== Paragraph 716 ===
+ซิสเต็มคอลเดียว clone() / clone3()
+
+=== Paragraph 717 ===
+ซิสเต็มคอลเฉพาะ NtCreateThreadEx()
+
+=== Paragraph 718 ===
+แบบจำลองการจับคู่
+
+=== Paragraph 719 ===
+One-to-One (1:1) เป็นแกนหลัก
+

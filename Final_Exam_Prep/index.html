@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คู่มือสรุปเจาะลึกเตรียมสอบปลายภาค Operating Systems (OS Final Exam Hub)</title>
+  <meta name="description" content="สุดยอดระบบสรุปเนื้อหาและติวเข้มข้อสอบปลายภาควิชา OS ครบทุกบท บทที่ 5 Deadlock, บทที่ 6 CPU Scheduling, บทที่ 7 Memory Management, บทที่ 8 Virtual Memory พร้อมเครื่องมือคำนวณจำลองและแบบทดสอบเสมือนจริง">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <!-- Ambient Atmosphere Glow -->
+  <div class="ambient-glow"></div>
+
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div class="logo-text">
+          <h2>OS Final Master</h2>
+          <span>Exam Prep & Simulator</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">ภาพรวมและการสรุปย่อ</div>
+        <a class="nav-item active" data-tab="overview">
+          <span class="icon"><i class="fa-solid fa-compass"></i></span>
+          <span>ภาพรวม & สูตรคำนวณลัด</span>
+          <span class="badge">Cheatsheet</span>
+        </a>
+
+        <div class="nav-section-title">เนื้อหาออกสอบหลัก (Core Chapters)</div>
+        <a class="nav-item" data-tab="ch5">
+          <span class="icon"><i class="fa-solid fa-lock"></i></span>
+          <span>บทที่ 5 : Deadlock</span>
+          <span class="badge" style="background: rgba(244,63,94,0.2); color: #fb7185;">Ch 5</span>
+        </a>
+        <a class="nav-item" data-tab="ch6">
+          <span class="icon"><i class="fa-solid fa-gauge-high"></i></span>
+          <span>บทที่ 6 : CPU Scheduling</span>
+          <span class="badge" style="background: rgba(245,158,11,0.2); color: #fcd34d;">Ch 6</span>
+        </a>
+        <a class="nav-item" data-tab="ch7">
+          <span class="icon"><i class="fa-solid fa-memory"></i></span>
+          <span>บทที่ 7 : Main Memory</span>
+          <span class="badge" style="background: rgba(56,189,248,0.2); color: #7dd3fc;">Ch 7</span>
+        </a>
+        <a class="nav-item" data-tab="ch8">
+          <span class="icon"><i class="fa-solid fa-layer-group"></i></span>
+          <span>บทที่ 8 : Virtual Memory</span>
+          <span class="badge" style="background: rgba(168,85,247,0.2); color: #d8b4fe;">Ch 8</span>
+        </a>
+        <a class="nav-item" data-tab="advanced">
+          <span class="icon"><i class="fa-solid fa-bolt"></i></span>
+          <span>ระบบไฟล์ & Concurrency ยุคใหม่</span>
+          <span class="badge">SOTA</span>
+        </a>
+
+        <div class="nav-section-title">เครื่องมือจำลอง & แบบทดสอบ</div>
+        <a class="nav-item" data-tab="calculators">
+          <span class="icon"><i class="fa-solid fa-calculator"></i></span>
+          <span>เครื่องคิดเลขจำลองโจทย์สอบ</span>
+          <span class="badge" style="background: #10b981; color: #022c22; font-weight:700;">Sim</span>
+        </a>
+        <a class="nav-item" data-tab="quiz">
+          <span class="icon"><i class="fa-solid fa-circle-question"></i></span>
+          <span>แบบทดสอบจำลอง (20 ข้อ)</span>
+          <span class="badge" style="background: #e11d48; color: #fff; font-weight:700;">Quiz</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="exam-pill">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>Final Exam Ready</span>
+        </div>
+        <button class="btn-icon" id="themeToggleBtn" title="สลับ Dark/Light mode">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="searchInput" placeholder="ค้นหาเนื้อหา / สูตรคำนวณ / คีย์เวิร์ด..." autocomplete="off">
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn-icon" id="quickQuizBtn" title="เริ่มทดสอบทันที">
+            <i class="fa-solid fa-stopwatch-20"></i>
+          </button>
+          <button class="btn-primary" onclick="switchTab('overview')">
+            <i class="fa-solid fa-bolt"></i> สูตรคำนวณลัด
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Container -->
+      <div class="page-container">
+        
+        <!-- Hero Banner -->
+        <section class="hero-banner">
+          <div class="hero-tag">
+            <i class="fa-solid fa-graduation-cap"></i> สรุปเข้มเจาะลึกวิชา Operating Systems
+          </div>
+          <h1 class="hero-title">ระบบติวเข้มและจำลองข้อสอบปลายภาค (OS Final Exam Hub)</h1>
+          <p class="hero-desc">
+            สรุปเนื้อหาเข้มข้น ละเอียดครบถ้วน 100% ตรงตามแนวข้อสอบและการบ้านสัปดาห์ที่ 4–5 ครบทุกบท (บทที่ 5 Deadlock, บทที่ 6 CPU Scheduling, บทที่ 7 Memory Management, บทที่ 8 Virtual Memory, และ SOTA Trends) พร้อมเครื่องคิดเลขจำลองขั้นตอนสด และแบบทดสอบเสมือนจริง 20 ข้อ
+          </p>
+          <div class="hero-stats">
+            <div class="stat-chip">
+              <i class="fa-solid fa-book-open" style="color: var(--accent-cyan);"></i>
+              <span>เนื้อหาเข้มข้น: <strong>4 บทใหญ่ + SOTA</strong></span>
+            </div>
+            <div class="stat-chip">
+              <i class="fa-solid fa-calculator" style="color: var(--accent-amber);"></i>
+              <span>เครื่องมือจำลอง: <strong>EMAT & Page Replacement</strong></span>
+            </div>
+            <div class="stat-chip">
+              <i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i>
+              <span>แบบทดสอบจำลอง: <strong>20 ข้อพร้อมเฉลยละเอียด</strong></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 1: OVERVIEW & QUICK FORMULA SHEET
+             ========================================== -->
+        <section id="tab-overview" class="chapter-section active">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2><i class="fa-solid fa-compass" style="color: var(--accent-cyan);"></i> ภาพรวมและสูตรคำนวณลัด (Quick Cheatsheet)</h2>
+              <p>สูตรคำนวณสำคัญ นิยามตัวแปร และเกณฑ์การประเมินที่ต้องจำเข้าห้องสอบอย่างแม่นยำ</p>
+            </div>
+            <span class="chapter-badge badge-ch7">
+              <i class="fa-solid fa-star"></i> High-Yield Formulas
+            </span>
+          </div>
+
+          <div class="card-grid">
+            <!-- CPU Scheduling Formulas -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(245,158,11,0.15); color: var(--accent-amber);"><i class="fa-solid fa-clock"></i></span>
+                1. CPU Scheduling Time Formulas
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+                การคำนวณเวลาจาก Gantt Chart สำหรับแต่ละโปรเซส P<sub>i</sub>:
+              </p>
+              <div class="formula-box">
+                Turnaround Time (TAT) = Completion Time - Arrival Time
+                <span class="formula-sub">เวลาทั้งหมดตั้งแต่โปรเซสก้าวเข้าสู่ระบบจนทำงานเสร็จสิ้น (รวมทั้ง CPU, I/O และการรอในคิว)</span>
+              </div>
+              <div class="formula-box">
+                Waiting Time (WT) = Turnaround Time - Burst Time - I/O Time
+                <span class="formula-sub">หรือ WT = ผลรวมของเวลาที่ต้องยืนรอเฉยๆ ใน Ready Queue ขณะที่ตัวพร้อมรัน</span>
+              </div>
+              <div class="formula-box">
+                Response Time (RT) = First CPU Time - Arrival Time
+                <span class="formula-sub">เวลาตั้งแต่เข้าคิวจนกระทั่งได้รับการประมวลผลบน CPU เป็นครั้งแรก</span>
+              </div>
+              <div class="formula-box">
+                Average Waiting Time (AWT) = (Σ WT ของทุกโปรเซส) / จำนวนโปรเซส
+                <span class="formula-sub">เป้าหมายหลักของระบบปฏิบัติการคือการทำให้ค่า AWT ต่ำที่สุด</span>
+              </div>
+            </div>
+
+            <!-- EMAT Formula -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(56,189,248,0.15); color: var(--accent-cyan);"><i class="fa-solid fa-microchip"></i></span>
+                2. Effective Memory Access Time (EMAT)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+                สูตรคำนวณเวลาเข้าถึงหน่วยความจำจริงเมื่อมีแคชฮาร์ดแวร์ TLB:
+              </p>
+              <div class="formula-box">
+                EMAT = α(t_tlb + t_mem) + (1 - α)(t_tlb + 2 × t_mem)
+                <span class="formula-sub">เมื่อ α = อัตราการค้นพบใน TLB (Hit Ratio), t_tlb = เวลาค้นหาใน TLB, t_mem = เวลาเข้าถึง RAM</span>
+              </div>
+              <div class="formula-box">
+                กรณีตารางเพจ 2 ระดับ (Two-Level Paging) เมื่อ TLB Miss:
+                EMAT = α(t_tlb + t_mem) + (1 - α)(t_tlb + 3 × t_mem)
+                <span class="formula-sub">เมื่อ Miss ต้องเข้า RAM 3 ครั้ง: (1) Outer Page Table, (2) Inner Page Table, (3) Physical Frame</span>
+              </div>
+              <div class="callout callout-info" style="margin: 0.5rem 0 0 0;">
+                <div class="callout-title"><i class="fa-solid fa-lightbulb"></i> เทคนิคข้อสอบการคำนวณ Target Hit Ratio</div>
+                หากโจทย์ถามว่าต้องทำ Hit Ratio (α) ให้ได้เท่าใดเพื่อให้ EMAT ไม่เกินค่าเป้าหมาย:
+                <br>α ≥ (t_miss - EMAT_target) / (t_miss - t_hit)
+              </div>
+            </div>
+
+            <!-- Banker's Algorithm Matrix -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(244,63,94,0.15); color: var(--accent-rose);"><i class="fa-solid fa-shield-halved"></i></span>
+                3. Banker's Algorithm Matrix Relation
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+                ความสัมพันธ์ของเวกเตอร์และเมทริกซ์ในการหลีกเลี่ยง Deadlock:
+              </p>
+              <div class="formula-box">
+                Need[i, j] = Max[i, j] - Allocation[i, j]
+                <span class="formula-sub">ทรัพยากรประเภท j ที่โปรเซส i ยังคงต้องการเพิ่มเพื่อทำงานจนเสร็จ</span>
+              </div>
+              <div class="formula-box">
+                Available[j] = Total_Resource[j] - Σ Allocation[i, j]
+                <span class="formula-sub">ทรัพยากรคงเหลือจริงในกองกลางที่พร้อมจัดสรร</span>
+              </div>
+              <div class="formula-box">
+                Safety Condition: Need_i ≤ Work (Available)
+                <span class="formula-sub">หากผ่าน: Work_ใหม่ = Work_เดิม + Allocation_i และมาร์ก Finish[i] = True</span>
+              </div>
+            </div>
+
+            <!-- Paging Calculation -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(168,85,247,0.15); color: var(--accent-purple);"><i class="fa-solid fa-file-code"></i></span>
+                4. Paging & Logical Address Split
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+                การแบ่งบิตแอดเดรสตรรกะขนาด m บิต เมื่อ Page Size = 2<sup>n</sup> ไบต์:
+              </p>
+              <div class="formula-box">
+                Page Offset (d) = n บิต (เท่ากับ log₂ ของ Page Size)
+                <span class="formula-sub">เช่น Page 4 KB (2<sup>12</sup> ไบต์) → d = 12 บิต</span>
+              </div>
+              <div class="formula-box">
+                Page Number (p) = m - n บิต
+                <span class="formula-sub">เช่น แอดเดรส 32 บิต ลบ d (12 บิต) เหลือ p = 20 บิต (มีได้สูงสุด 1,048,576 หน้า)</span>
+              </div>
+              <div class="formula-box">
+                Physical Address = (Frame Number × Page Size) + Offset
+                <span class="formula-sub">หรือ f = LA // Page_Size และ d = LA % Page_Size</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Master Comparison Table -->
+          <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-title">
+              <span class="icon" style="background: rgba(16,185,129,0.15); color: var(--accent-emerald);"><i class="fa-solid fa-table-list"></i></span>
+              ตารางสรุปเปรียบเทียบจุดเด่น-จุดด้อยหัวข้อออกสอบ (Comprehensive Exam Comparison)
+            </div>
+            <div class="table-responsive">
+              <table class="os-table">
+                <thead>
+                  <tr>
+                    <th>หัวข้อ / กลไก</th>
+                    <th>ข้อดี (Advantages)</th>
+                    <th>จุดอ่อน / ข้อจำกัด (Pitfalls)</th>
+                    <th>ความเสี่ยง / ปัญหาเฉพาะตัว</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Banker's Algorithm</strong></td>
+                    <td>รับประกัน Safe State แน่นอน 100% ป้องกันไม่ให้ระบบตกสู่ภาวะ Deadlock</td>
+                    <td>โปรเซสต้องระบุทรัพยากรสูงสุดล่วงหน้า (Max Claim) ซึ่งในระบบจริงทำได้ยากมาก</td>
+                    <td>Overhead มหาศาลระดับ O(m × n<sup>2</sup>) ทุกครั้งที่มี System Call ขอทรัพยากร</td>
+                  </tr>
+                  <tr>
+                    <td><strong>SJF / SRTF Scheduling</strong></td>
+                    <td>ให้ค่า Average Waiting Time ต่ำที่สุดตามหลักคณิตศาสตร์ (Optimal)</td>
+                    <td>ไม่สามารถทราบ CPU Burst Time ที่แท้จริงล่วงหน้าได้ ต้องใช้การประมาณการแบบสถิติ</td>
+                    <td>โปรเซสที่ใช้เวลาทำงานยาวนานจะเกิดปัญหา <strong>Starvation</strong> (แก้ไขด้วยเทคนิค Aging)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Round Robin (RR)</strong></td>
+                    <td>ตอบสนองผู้ใช้รวดเร็ว (Fairness & Good Response Time) ป้องกันปัญหา Starvation สมบูรณ์</td>
+                    <td>ถ้ากำหนด Time Quantum สั้นเกินไปจะเกิด Context Switch Overhead สูงมหาศาล</td>
+                    <td>ถ้า Time Quantum ยาวเกินไป พฤติกรรมจะกลายสภาพเป็น FCFS</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Paging with TLB</strong></td>
+                    <td>ขจัดปัญหา External Fragmentation ได้อย่างหมดจด ย้ายหน้าได้อย่างอิสระ</td>
+                    <td>เกิด Internal Fragmentation ในหน้าสุดท้าย และต้องใช้แรมเก็บ Page Table ขนาดใหญ่</td>
+                    <td>TLB Miss ส่งผลให้ต้องเข้าถึง RAM เพิ่มขึ้นสองเท่า EMAT ช้าลงชัดเจน</td>
+                  </tr>
+                  <tr>
+                    <td><strong>FIFO Page Replacement</strong></td>
+                    <td>เข้าใจง่าย โครงสร้างคิวไม่ซับซ้อน Overhead ในการจัดการต่ำ</td>
+                    <td>ไม่สนใจความถี่ของการใช้งาน อาจสลับหน้าที่กำลังใช้อยู่ออกไปจากแรม</td>
+                    <td>เกิดปรากฏการณ์ <strong>Belady's Anomaly</strong> (เพิ่มจำนวนเฟรม แต่ Page Faults กลับเพิ่มขึ้น)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LRU Page Replacement</strong></td>
+                    <td>ประสิทธิภาพใกล้เคียง Optimal Page Replacement และไม่เกิด Belady's Anomaly แน่นอน</td>
+                    <td>ต้องการฮาร์ดแวร์พิเศษคอยสนับสนุน (เช่น Logical Clock Counter หรือ Stack) มี Overhead ทุกครั้งที่อ่านเมมโมรี</td>
+                    <td>การบำรุงรักษา Stack หรือ Timestamp ในทุก Memory Reference มีต้นทุนทางสถาปัตยกรรมสูง</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 2: CHAPTER 5 DEADLOCK
+             ========================================== -->
+        <section id="tab-ch5" class="chapter-section">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2><i class="fa-solid fa-lock" style="color: var(--accent-rose);"></i> บทที่ 5 : ภาวะติดตาย (Deadlock)</h2>
+              <p>เงื่อนไขจำเป็น 4 ประการ, กราฟจัดสรรทรัพยากร (RAG), Banker's Algorithm และเทคนิคการตรวจจับและกู้คืน</p>
+            </div>
+            <span class="chapter-badge badge-ch5">
+              <i class="fa-solid fa-file-lines"></i> Lecture Ch 5 & HW 4 Part 1-2
+            </span>
+          </div>
+
+          <div class="card-grid">
+            <!-- 4 Conditions -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(244,63,94,0.15); color: var(--accent-rose);"><i class="fa-solid fa-list-check"></i></span>
+                4 เงื่อนไขจำเป็นของภาวะติดตาย (Coffman Conditions)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1rem;">
+                Deadlock จะเกิดขึ้นได้ก็ต่อเมื่อมีเงื่อนไขทั้ง 4 ข้อนี้เกิดขึ้น <strong>พร้อมกันในเวลาเดียวกัน (Simultaneously)</strong> เท่านั้น หากขาดข้อใดข้อหนึ่งไป ระบบจะไม่มีทางเกิด Deadlock ได้เลย:
+              </p>
+              <ul class="step-list">
+                <li class="step-item">
+                  <strong>1. Mutual Exclusion (การไม่เกิดร่วมกัน):</strong> มีทรัพยากรอย่างน้อย 1 ประเภทที่เป็น Non-shareable ในขณะใดขณะหนึ่ง โปรเซสใช้งานได้เพียงตัวเดียวเท่านั้น (เช่น เครื่องพิมพ์, สิทธิ์การเขียนไฟล์)
+                </li>
+                <li class="step-item">
+                  <strong>2. Hold and Wait (การถือครองและรอคอย):</strong> โปรเซสกำลังถือครองทรัพยากรอย่างน้อย 1 ตัว และกำลังรอคอยทรัพยากรอื่นเพิ่มเติม ซึ่งทรัพยากรนั้นกำลังถูกโปรเซสอื่นถือครองอยู่
+                </li>
+                <li class="step-item">
+                  <strong>3. No Preemption (การไม่สามารถยึดทรัพยากรคืนได้):</strong> ทรัพยากรไม่สามารถถูกบังคับยึดคืนกลางคันได้ ผู้ถือครองต้องปล่อยคืนอย่างสมัครใจเมื่อทำงานเสร็จสิ้นเท่านั้น
+                </li>
+                <li class="step-item">
+                  <strong>4. Circular Wait (การรอคอยแบบเป็นวงรอบ):</strong> เกิดลำดับโปรเซส { P<sub>0</sub>, P<sub>1</sub>, ..., P<sub>n</sub> } โดยที่ P<sub>0</sub> กำลังรอทรัพยากรจาก P<sub>1</sub>, P<sub>1</sub> รอจาก P<sub>2</sub> จนถึง P<sub>n</sub> กำลังรอทรัพยากรที่ P<sub>0</sub> ถือครองอยู่
+                </li>
+              </ul>
+              <div class="callout callout-warning">
+                <div class="callout-title"><i class="fa-solid fa-triangle-exclamation"></i> เทคนิคพิชิตข้อสอบการป้องกัน (Deadlock Prevention)</div>
+                การทำ Deadlock Prevention คือการออกกฎเพื่อทำลายเงื่อนไขข้อใดข้อหนึ่งใน 4 ข้อ:
+                <br>• <strong>ทำลาย Mutual Exclusion:</strong> ใช้ Spooling กับเครื่องพิมพ์ (โปรเซสเขียนงานลงดิสก์แทนที่จะแย่งเครื่องพิมพ์ตรงๆ)
+                <br>• <strong>ทำลาย Hold and Wait:</strong> บังคับให้โปรเซสขอทรัพยากรทั้งหมดที่จำเป็นตั้งแต่แรก หากไม่ได้ครบจะไม่ให้เริ่มทำงาน (ข้อเสีย: เปลืองทรัพยากรและเสี่ยงต่อ Starvation)
+                <br>• <strong>ทำลาย No Preemption:</strong> หากขอเพิ่มแล้วไม่ได้ ให้ระบบบังคับริบทรัพยากรเดิมที่ถืออยู่คืนส่วนกลางทันที
+                <br>• <strong>ทำลาย Circular Wait:</strong> กำหนดหมายเลขลำดับทรัพยากร (Global Ordering) และบังคับให้ขอตามลำดับจากน้อยไปมากเท่านั้น
+              </div>
+            </div>
+
+            <!-- Resource Allocation Graph -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(56,189,248,0.15); color: var(--accent-cyan);"><i class="fa-solid fa-diagram-project"></i></span>
+                กราฟการจัดสรรทรัพยากร (Resource Allocation Graph: RAG)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem;">
+                แบบจำลองกราฟทิศทางแสดงความสัมพันธ์ระหว่างโปรเซส (วงกลม) และทรัพยากร (สี่เหลี่ยม โดยมีจุดกลมภายในแทนจำนวนหน่วย Instance):
+              </p>
+              <ul style="margin: 0.75rem 0 0.75rem 1.25rem; color: var(--text-muted); font-size: 0.92rem; line-height: 1.8;">
+                <li><strong>Request Edge (P<sub>i</sub> → R<sub>j</sub>):</strong> โปรเซส P<sub>i</sub> กำลังร้องขอทรัพยากร R<sub>j</sub> (ลูกศรชี้เข้าขอบสี่เหลี่ยม)</li>
+                <li><strong>Assignment Edge (R<sub>j</sub> → P<sub>i</sub>):</strong> ทรัพยากร R<sub>j</sub> ถูกจัดสรรให้ P<sub>i</sub> ถือครองแล้ว (ลูกศรพุ่งออกจากจุดภายในสี่เหลี่ยม)</li>
+              </ul>
+              
+              <div class="diagram-figure">
+                <img src="assets/images/rag_graph_q2_1.png" alt="Resource Allocation Graph Deadlock" loading="lazy">
+                <div class="diagram-caption">
+                  <i class="fa-solid fa-image"></i> รูปที่ 5.1: แผนภาพ RAG จากการบ้านข้อ 2.1 มีวงรอบ P<sub>1</sub> → R<sub>2</sub> → P<sub>2</sub> → R<sub>3</sub> → P<sub>3</sub> → R<sub>1</sub> → P<sub>1</sub>
+                </div>
+              </div>
+
+              <div class="callout callout-danger">
+                <div class="callout-title"><i class="fa-solid fa-circle-exclamation"></i> กฎเหล็กเรื่อง Cycle ใน RAG (ออกสอบบ่อยที่สุด)</div>
+                • <strong>Single Instance per Resource:</strong> หากทรัพยากรทุกชนิดมีเพียง 1 หน่วยเดี่ยว การมี Cycle หมายความว่า <strong>เกิด Deadlock แน่นอน 100%</strong> (Necessary & Sufficient)
+                <br>• <strong>Multiple Instances per Resource:</strong> การมี Cycle เป็นเพียงเงื่อนไขจำเป็น แต่ <strong>อาจไม่เกิด Deadlock</strong> เช่นในรูป 5.1 ทรัพยากร R<sub>2</sub> มี 2 หน่วย โดยหน่วยหนึ่งถูกถือครองโดย P<sub>4</sub> ซึ่งอยู่นอกวงรอบและไม่ได้รอใคร เมื่อ P<sub>4</sub> ทำงานเสร็จแล้วคืน R<sub>2</sub> ระบบจะสามารถจัดสรรต่อตามลำดับ P<sub>4</sub> → P<sub>1</sub> → P<sub>3</sub> → P<sub>2</sub> จนเสร็จสิ้นทุกตัว ไม่เกิด Deadlock!
+                <br>• <em>แต่ถ้าเพิ่มเส้นร้องขอ P<sub>4</sub> → R<sub>3</sub>:</em> P<sub>4</sub> จะกลายเป็นส่วนหนึ่งของวงรอบใหม่ ทำให้ไม่มีโปรเซสใดรันจบได้เลย คราวนี้จะกลายเป็น <strong>Deadlock 100%</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Banker's Algorithm Detailed Guide -->
+          <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-title">
+              <span class="icon" style="background: rgba(16,185,129,0.15); color: var(--accent-emerald);"><i class="fa-solid fa-building-columns"></i></span>
+              เจาะลึกอัลกอริทึมนายธนาคาร (Banker's Algorithm) แสดงวิธีคิดทีละสเต็ป
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.7;">
+              ใช้สำหรับ <strong>Deadlock Avoidance</strong> ในระบบที่มีทรัพยากรแบบ Multiple Instances ก่อนจะอนุมัติทรัพยากรให้โปรเซสใด ระบบจะจำลองว่า "ถ้าให้ไปแล้ว ระบบยังคงอยู่ในสถานะปลอดภัย (Safe State) หรือไม่" หากปลอดภัยจึงจะจัดสรรจริง หากไม่ปลอดภัยจะปฏิเสธคำขอและให้โปรเซสรอไปก่อน
+            </p>
+
+            <!-- Easy Intuitive Analogy Box -->
+            <div class="callout callout-info" style="margin: 1.25rem 0; background: rgba(56, 189, 248, 0.08); border-left: 4px solid var(--accent-cyan);">
+              <div class="callout-title" style="font-size: 1.15rem; color: var(--accent-cyan); margin-bottom: 0.75rem;">
+                <i class="fa-solid fa-lightbulb"></i> นิทานเปรียบเทียบชีวิตจริง: Banker's Algorithm ฉบับเข้าใจง่ายใน 3 นาที
+              </div>
+              <p style="font-size: 0.92rem; line-height: 1.7; color: var(--text-main); margin-bottom: 0.75rem;">
+                ลองจินตนาการว่าเราเป็น <strong>"ผู้จัดการธนาคาร"</strong> ที่มีลูกค้า 5 คน (P0 ถึง P4) กำลังขอกู้เงินสร้างบ้าน:
+              </p>
+              <ul style="margin-left: 1.25rem; font-size: 0.9rem; line-height: 1.8; color: var(--text-muted);">
+                <li><strong>Max (วงเงินกู้สูงสุดที่ขอ):</strong> ลูกค้าแต่ละคนบอกไว้ล่วงหน้าว่า "บ้านหลังนี้ถ้าจะสร้างเสร็จ ต้องใช้เงินรวมเท่าไหร่"</li>
+                <li><strong>Allocation (เงินที่เบิกไปแล้ว):</strong> ตอนนี้ลูกค้าหยิบเงินจากธนาคารไปถือไว้ในมือคนละเท่าไหร่</li>
+                <li><strong>Need (เงินที่ยังขาดอยู่ = Max - Allocation):</strong> ลูกค้าต้องขอเงินเพิ่มอีกเท่าไหร่ ถึงจะสร้างบ้านเสร็จสมบูรณ์</li>
+                <li><strong>Available (เงินสดคงเหลือในตู้เซฟของธนาคาร):</strong> เงินกองกลางที่ธนาคารยังเหลือให้กู้ได้ในขณะนี้</li>
+              </ul>
+              <div style="background: rgba(0,0,0,0.25); padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin: 0.75rem 0; border-left: 3px solid var(--accent-amber); font-size: 0.88rem; line-height: 1.6;">
+                <strong>⚠️ กฎเหล็กของลูกค้าทุกคน:</strong> <em>"ถ้าได้เงินไม่ครบตามที่ขอ บ้านสร้างค้าง จะไม่คืนเงินแม้แต่บาทเดียว! แต่ถ้าได้เงินที่ขาด (Need) ไปจนครบ บ้านสร้างเสร็จ 100% ลูกค้าจะคืนเงินทั้งหมด (ทั้งของเดิม Allocation + ของใหม่) กลับเข้าตู้เซฟธนาคารทันที"</em>
+              </div>
+              <div style="font-size: 0.9rem; line-height: 1.7; color: var(--text-main);">
+                <strong>🎯 วิธีเล่นเกม Safety Algorithm (สเต็ป 1-2-3 ง่ายๆ ในห้องสอบ):</strong>
+                <br>1. ก้มดูเงินในตู้เซฟเราตอนนี้ (<code>Available</code>)
+                <br>2. กวาดสายตามองหาลูกค้าที่ <strong>"เงินที่ยังขาดอยู่ (Need) น้อยกว่าหรือเท่ากับเงินในเซฟเรา"</strong> (<code>Need ≤ Available</code>)
+                <br>3. พอเจอคนนั้น (เช่น P1) เราปล่อยกู้ให้เขาจนบ้านเสร็จ P1 จะ <strong>"คืนเงินทั้งหมดที่ถืออยู่ (Allocation) กลับเข้าตู้เซฟเรา"</strong> ทำให้ตู้เซฟเรามีเงิน <strong>"เยอะขึ้นกว่าเดิม!"</strong> (<code>Available ใหม่ = Available เดิม + Allocation</code>)
+                <br>4. เอาเงินกองใหญ่ขึ้นนี้ ไปช่วยลูกค้ารายถัดไปเรื่อยๆ จนกระทั่งสร้างบ้านเสร็จครบทุกคน <strong>→ เรียกว่า "Safe State (ปลอดภัยแน่นอน 100%)"</strong>
+              </div>
+            </div>
+
+            <!-- Interactive Banker's Algorithm Step-by-Step Simulator -->
+            <div class="banker-sim-container" id="bankerSim">
+              <div class="banker-control-bar">
+                <div class="banker-preset-group">
+                  <label for="bankerPresetSelect"><i class="fa-solid fa-layer-group" style="color: var(--accent-cyan);"></i> เลือกชุดโจทย์ตัวอย่าง:</label>
+                  <select id="bankerPresetSelect" class="input-control" style="font-weight: 600; min-width: 280px;">
+                    <option value="hw5">โจทย์จริงการบ้าน HW5 (Total: [10, 6, 8]) — ปลอดภัย Safe</option>
+                    <option value="silberschatz">โจทย์ในสไลด์ Silberschatz (Total: [10, 5, 7]) — ปลอดภัย Safe</option>
+                    <option value="req_p2_safe">ทดสอบคำขอ: P2 ขอเพิ่ม [1, 0, 1] — อนุมัติได้ (Safe)</option>
+                    <option value="req_p0_unsafe">ทดสอบคำขอ: P0 ขอเพิ่ม [0, 2, 0] — ปฏิเสธ (Unsafe / Deadlock!)</option>
+                  </select>
+                </div>
+
+                <div class="banker-btn-group">
+                  <button class="btn-primary" id="bankerPrevBtn" disabled style="padding: 0.55rem 0.95rem; font-size: 0.88rem;">
+                    <i class="fa-solid fa-backward-step"></i> ย้อนกลับ
+                  </button>
+                  <button class="btn-primary" id="bankerNextBtn" style="padding: 0.55rem 1.15rem; font-size: 0.92rem; background: var(--gradient-brand); box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);">
+                    <i class="fa-solid fa-forward-step"></i> สเต็ปถัดไป (Next)
+                  </button>
+                  <button class="btn-primary" id="bankerAutoBtn" style="background: rgba(255,255,255,0.08); padding: 0.55rem 0.95rem; font-size: 0.88rem;">
+                    <i class="fa-solid fa-play"></i> เล่นอัตโนมัติ
+                  </button>
+                  <button class="btn-primary" id="bankerResetBtn" style="background: rgba(255,255,255,0.08); padding: 0.55rem 0.95rem; font-size: 0.88rem;">
+                    <i class="fa-solid fa-rotate-right"></i> เริ่มใหม่
+                  </button>
+                </div>
+              </div>
+
+              <!-- Top Status Metrics -->
+              <div class="banker-status-grid">
+                <div class="banker-status-card work-card">
+                  <div class="banker-card-label">
+                    <i class="fa-solid fa-vault" style="color: var(--accent-cyan);"></i> เงินสดในตู้เซฟคงเหลือ (Available / Work):
+                  </div>
+                  <div class="banker-card-value" id="bankerWorkVal">[ A: 2, B: 2, C: 1 ]</div>
+                  <div class="banker-card-sub" id="bankerWorkSub">คำนวณจาก Total [10, 6, 8] ลบยอดแจก [8, 4, 7]</div>
+                </div>
+
+                <div class="banker-status-card seq-card">
+                  <div class="banker-card-label">
+                    <i class="fa-solid fa-route" style="color: var(--accent-emerald);"></i> ลำดับปลอดภัยสะสม (Safe Sequence):
+                  </div>
+                  <div class="banker-card-value seq-value" id="bankerSeqVal">
+                    <span style="font-size: 0.95rem; color: var(--text-dim); font-weight: normal;">(กดปุ่ม "สเต็ปถัดไป" เพื่อเริ่มจำลอง)</span>
+                  </div>
+                  <div class="banker-card-sub" id="bankerProgressSub">สเต็ปที่ 0 / 7 • Finish: 0/5 โปรเซส</div>
+                </div>
+              </div>
+
+              <!-- Interactive Dynamic Matrix Table -->
+              <div class="table-responsive">
+                <table class="os-table banker-table" id="bankerMatrixTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 10%;">โปรเซส</th>
+                      <th style="width: 18%;">Allocation (ถืออยู่)</th>
+                      <th style="width: 18%;">Max (ขอสูงสุด)</th>
+                      <th style="width: 22%;">Need = Max - Alloc (ขาดอีก)</th>
+                      <th style="width: 14%;">สถานะ Finish</th>
+                      <th style="width: 18%;">ผลตรวจเทียบ Work</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bankerTableBody">
+                    <!-- Populated dynamically via JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Step Calculation & Thought Process Box -->
+              <div class="banker-step-box eval-init" id="bankerStepBox">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                  <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span class="step-num" id="bankerStepBadge">0</span>
+                    <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);" id="bankerStepTitle">
+                      พร้อมเริ่มรัน Safety Algorithm!
+                    </h4>
+                  </div>
+                  <span class="banker-badge badge-eval" id="bankerStepStatus">พร้อมใช้งาน</span>
+                </div>
+
+                <div id="bankerStepContent" style="font-size: 0.92rem; line-height: 1.7; color: var(--text-muted);">
+                  กดปุ่ม <strong>"สเต็ปถัดไป (Next)"</strong> หรือ <strong>"เล่นอัตโนมัติ"</strong> ด้านบน เพื่อดูการทำงานทีละขั้นตอน: ตรวจสอบว่าทำไมระบบถึงข้ามบางโปรเซส และทำไมบางโปรเซสถึงได้รับจัดสรรก่อน พร้อมแสดงสูตรเวกเตอร์และการบวกเงินคืนเข้าเซฟอย่างละเอียด!
+                </div>
+              </div>
+            </div>
+
+            <!-- Resource Request Algorithm Analysis -->
+            <div style="margin-top: 1.5rem;">
+              <h4 style="color: var(--accent-cyan); margin-bottom: 0.75rem;"><i class="fa-solid fa-scale-balanced"></i> การวิเคราะห์คำร้องขอ (Resource-Request Algorithm)</h4>
+              <div class="card-grid" style="margin-bottom: 0;">
+                <div class="step-box-card">
+                  <div class="step-box-header" style="color: var(--accent-emerald);">
+                    <i class="fa-solid fa-circle-check"></i> กรณีที่ 1: P2 ขอเพิ่ม [1, 0, 1]
+                  </div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    1. เช็คสิทธิ์: [1, 0, 1] ≤ Need[P2] [6, 0, 1] (ผ่าน ไม่เกินสิทธิ์)<br>
+                    2. เช็คคลัง: [1, 0, 1] ≤ Available [2, 2, 1] (ผ่าน มีของพอ)<br>
+                    3. จำลองสถานะ: Available เหลือ [1, 2, 0] เมื่อรัน Safety Algorithm พบ Safe Sequence ⟨ P1, P3, P2, P0, P4 ⟩ ระบบรอด<br>
+                    <strong>การตัดสินใจ:</strong> <span style="color: var(--accent-emerald); font-weight: 700;">อนุมัติจัดสรรให้ทันที!</span>
+                  </p>
+                </div>
+
+                <div class="step-box-card">
+                  <div class="step-box-header" style="color: var(--accent-rose);">
+                    <i class="fa-solid fa-circle-xmark"></i> กรณีที่ 2: P0 ขอเพิ่ม [0, 2, 0]
+                  </div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    1. เช็คสิทธิ์: [0, 2, 0] ≤ Need[P0] [7, 3, 2] (ผ่าน)<br>
+                    2. เช็คคลัง: [0, 2, 0] ≤ Available [2, 2, 1] (ผ่าน มีทรัพยากร B พอดี)<br>
+                    3. จำลองสถานะ: Available เหลือ [2, 0, 1] (ทรัพยากร B เหลือ 0) ปรากฏว่า <em>ไม่มีโปรเซสใดในระบบรันต่อได้เลย!</em> ตกสู่ Unsafe State ทันที<br>
+                    <strong>การตัดสินใจ:</strong> <span style="color: var(--accent-rose); font-weight: 700;">ปฏิเสธคำขอและสั่งให้ P0 รอไปก่อน</span> (หลีกเลี่ยง Deadlock ล่วงหน้า)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 3: CHAPTER 6 CPU SCHEDULING
+             ========================================== -->
+        <section id="tab-ch6" class="chapter-section">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2><i class="fa-solid fa-gauge-high" style="color: var(--accent-amber);"></i> บทที่ 6 : การจัดลำดับการทำงานของซีพียู (CPU Scheduling)</h2>
+              <p>เกณฑ์วัดประสิทธิภาพ, Dispatch Latency, อัลกอริทึม FCFS / SJF / Priority / RR และปัญหา Priority Inversion</p>
+            </div>
+            <span class="chapter-badge badge-ch6">
+              <i class="fa-solid fa-microchip"></i> Lecture Ch 6 & HW 4 Part 3
+            </span>
+          </div>
+
+          <div class="card-grid">
+            <!-- CPU Scheduling Timeline Analysis -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(245,158,11,0.15); color: var(--accent-amber);"><i class="fa-solid fa-timeline"></i></span>
+                การวิเคราะห์ไทม์ไลน์โปรเซสและ Dispatch Latency
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+                ตัวอย่างโจทย์วิเคราะห์ประวัติเวลาของโปรเซส P (หน่วย ms): เข้าคิว t=3, รอในคิว t=3–5, รัน CPU ครั้งที่ 1 t=5–7, ทำ I/O t=7–13, กลับมารอในคิว t=13–17, รัน CPU ครั้งที่ 2 t=17–19 แล้วเสร็จสิ้น:
+              </p>
+              <div class="formula-box">
+                Turnaround Time (TAT) = เวลาเสร็จ (19) - เวลาเข้า (3) = 16 ms
+                <span class="formula-sub">Waiting Time (WT) = รอรอบแรก (5-3=2) + รอรอบสอง (17-13=4) = 6 ms</span>
+                <span class="formula-sub">Response Time (RT) = ได้แตะ CPU ครั้งแรก (5) - เวลาเข้า (3) = 2 ms</span>
+              </div>
+              <div class="callout callout-info">
+                <div class="callout-title"><i class="fa-solid fa-circle-question"></i> ทำไมเวลารอ I/O ถึงไม่นับเป็น Waiting Time ของ CPU Scheduling?</div>
+                1. ตอนรอ I/O โปรเซสถูกย้ายไปนอนรอที่สถานะ Blocked ต่อให้ CPU ว่าง โปรเซสก็ยังรันไม่ได้จนกว่าอุปกรณ์ I/O จะอ่านเขียนเสร็จ
+                <br>2. วัตถุประสงค์ของ CPU Scheduler คือวัดความสามารถในการกระจายซีพียูให้คนที่ "พร้อมทำงาน" (Ready State) ความล่าช้าของฮาร์ดแวร์ภายนอกไม่ถือเป็นความผิดของตัวจัดลำดับ
+              </div>
+            </div>
+
+            <!-- Priority Inversion & PIP -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(244,63,94,0.15); color: var(--accent-rose);"><i class="fa-solid fa-arrow-down-up-across-line"></i></span>
+                ปัญหา Priority Inversion & การแก้ไขด้วย PIP
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+                เกิดขึ้นเมื่อโปรเซส Priority ต่ำ <span class="priority-badge priority-low">L (Low)</span> กำลังถือครองทรัพยากร/ล็อก ต่อมามีโปรเซส Priority สูง <span class="priority-badge priority-high">H (High)</span> เข้ามาขอล็อก จึงต้องบล็อกรอ แต่จังหวะนั้นมีโปรเซสระดับกลาง <span class="priority-badge priority-mid">M (Medium)</span> ที่ไม่ต้องใช้ล็อกเข้ามาแย่งซีพียู ทำให้ <span class="priority-badge priority-mid">M</span> ได้รันก่อน <span class="priority-badge priority-high">H</span> (เสมือนระดับความสำคัญสลับขั้วกัน)!
+              </p>
+              
+              <div class="diagram-figure">
+                <img src="assets/images/figure_5_1_priority_inversion.png" alt="Priority Inversion Problem" loading="lazy">
+                <div class="diagram-caption">
+                  <i class="fa-solid fa-image"></i> รูปที่ 6.1: กลไก Priority Inversion และการยกระดับสิทธิ์ชั่วคราวผ่าน Priority Inheritance Protocol (PIP)
+                </div>
+              </div>
+
+              <div class="callout callout-success" style="margin-bottom: 0;">
+                <div class="callout-title"><i class="fa-solid fa-shield-halved"></i> Priority Inheritance Protocol (PIP)</div>
+                ระบบจะทำการ <strong>ยกระดับความสำคัญชั่วคราว</strong> ให้โปรเซส <span class="priority-badge priority-low">L</span> มี Priority สูงเท่ากับ <span class="priority-badge priority-high">H</span> ในระหว่างที่ถือครองล็อก เพื่อป้องกันไม่ให้โปรเซส <span class="priority-badge priority-mid">M</span> เข้ามา Preempt แย่งซีพียูไปได้ เมื่อ <span class="priority-badge priority-low">L</span> ปล่อยล็อก จึงค่อยคืนสิทธิ์กลับสู่ระดับปกติ
+              </div>
+            </div>
+          </div>
+
+          <!-- Gantt Charts from HW 4 -->
+          <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-title">
+              <span class="icon" style="background: rgba(56,189,248,0.15); color: var(--accent-cyan);"><i class="fa-solid fa-chart-gantt"></i></span>
+              การวิเคราะห์ Gantt Chart และคำนวณเวลารอเฉลี่ย (Case Studies จากการบ้าน 4)
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+              <div>
+                <h4 style="color: var(--accent-amber); margin-bottom: 0.5rem;"><i class="fa-solid fa-bolt"></i> กรณีศึกษา 1: Non-preemptive SJF (HW4 ข้อ 3.1)</h4>
+                <div class="diagram-figure" style="margin: 0.5rem 0 1rem 0;">
+                  <img src="assets/images/gantt_part3_q1.png" alt="SJF Gantt Chart" loading="lazy">
+                  <div class="diagram-caption">ลำดับการรัน: P1(0-3) → P2(3-9) → P4(9-13) → P3(13-21)</div>
+                </div>
+                <div class="formula-box">
+                  Waiting Time: P1 = 0, P2 = 1, P4 = 5, P3 = 9 ms
+                  <span class="formula-sub">Average Waiting Time = (0 + 1 + 5 + 9) / 4 = <strong>3.75 ms</strong></span>
+                  <span class="formula-sub">Average Turnaround Time = (3 + 7 + 9 + 17) / 4 = <strong>9.00 ms</strong></span>
+                </div>
+              </div>
+
+              <div>
+                <h4 style="color: var(--accent-cyan); margin-bottom: 0.5rem;"><i class="fa-solid fa-repeat"></i> กรณีศึกษา 2: Round Robin (Time Quantum = 4 ms)</h4>
+                <div class="diagram-figure" style="margin: 0.5rem 0 1rem 0;">
+                  <img src="assets/images/gantt_part3_q2.png" alt="Round Robin Gantt Chart" loading="lazy">
+                  <div class="diagram-caption">ลำดับการสลับงาน: P1(0-3) → P2(3-7) → P3(7-11) → P4(11-15) → P2(15-17) → P3(17-21)</div>
+                </div>
+                <div class="formula-box">
+                  Waiting Time: P1 = 0, P2 = 11, P4 = 9, P3 = 9 ms
+                  <span class="formula-sub">Average Waiting Time = (0 + 11 + 9 + 9) / 4 = <strong>7.25 ms</strong></span>
+                  <span class="formula-sub">Average Turnaround Time = (3 + 17 + 13 + 17) / 4 = <strong>12.50 ms</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 4: CHAPTER 7 MEMORY MANAGEMENT
+             ========================================== -->
+        <section id="tab-ch7" class="chapter-section">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2><i class="fa-solid fa-memory" style="color: var(--accent-cyan);"></i> บทที่ 7 : การจัดการหน่วยความจำหลัก (Main Memory)</h2>
+              <p>Address Binding, Contiguous Allocation, Fragmentation, Paging Hardware และสูตรคำนวณ EMAT กับ TLB</p>
+            </div>
+            <span class="chapter-badge badge-ch7">
+              <i class="fa-solid fa-microchip"></i> Lecture Ch 7 & HW 5 Part 1
+            </span>
+          </div>
+
+          <div class="card-grid">
+            <!-- Dynamic Partitioning HW5 Case Study -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(56,189,248,0.15); color: var(--accent-cyan);"><i class="fa-solid fa-arrows-split-up-and-left"></i></span>
+                การจัดสรรช่องว่าง (First-Fit, Best-Fit, Worst-Fit)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0.75rem;">
+                กรณีศึกษาช่องว่างในหน่วยความจำ: 150 KB, 520 KB, 180 KB, 320 KB, 640 KB และมีคำขอเข้ามาตามลำดับ: P1 (210 KB), P2 (430 KB), P3 (120 KB), P4 (450 KB):
+              </p>
+              <div class="table-responsive">
+                <table class="os-table">
+                  <thead>
+                    <tr>
+                      <th>กลยุทธ์</th>
+                      <th>การจัดวางแต่ละโปรเซส</th>
+                      <th>ผลลัพธ์</th>
+                      <th>พื้นที่ว่างรวมที่เหลือ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>First-Fit</strong></td>
+                      <td>P1 ใส่ 520, P2 ใส่ 640, P3 ใส่ 150, <em>P4 วางไม่ได้!</em></td>
+                      <td><span style="color: var(--accent-rose); font-weight:700;">ไม่สำเร็จ (P4 ต้องรอ)</span></td>
+                      <td>1,050 KB (เกิด External Frag.)</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Best-Fit</strong></td>
+                      <td>P1 ใส่ 320, P2 ใส่ 520, P3 ใส่ 150, P4 ใส่ 640</td>
+                      <td><span style="color: var(--accent-emerald); font-weight:700;">สำเร็จครบ 100%!</span></td>
+                      <td>เหลือช่องละ 30, 90, 30, 110, 180 KB</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Worst-Fit</strong></td>
+                      <td>P1 ใส่ 640, P2 ใส่ 520, P3 ใส่ 430, <em>P4 วางไม่ได้!</em></td>
+                      <td><span style="color: var(--accent-rose); font-weight:700;">ไม่สำเร็จ (P4 ต้องรอ)</span></td>
+                      <td>1,050 KB (เกิด External Frag.)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="callout callout-warning">
+                <div class="callout-title"><i class="fa-solid fa-compress"></i> การอัดแน่น (Compaction)</div>
+                ในกรณี First-Fit และ Worst-Fit มีพื้นที่ว่างรวมถึง 1,050 KB แต่กระจัดกระจาย หากทำ Compaction รวมเป็นก้อนเดียว จะสามารถบรรจุ P4 (450 KB) ได้อย่างสบาย และยังเหลือพื้นที่ว่างอีก 600 KB! (เงื่อนไข: ต้องเป็น Run-time Address Binding เท่านั้น)
+              </div>
+            </div>
+
+            <!-- Base and Limit Register Verification -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(168,85,247,0.15); color: var(--accent-purple);"><i class="fa-solid fa-shield"></i></span>
+                การตรวจสอบตำแหน่ง Base & Limit Register (HW5 ข้อ 1.3)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+                ระบบมี Relocation Register (Base) = 24,600 และ Limit Register = 2,048:
+              </p>
+              <ul class="step-list">
+                <li class="step-item">
+                  <strong>ตำแหน่งตรรกะ 1,750:</strong> ตรวจสอบ 1,750 &lt; 2,048 (ผ่าน) → ตำแหน่งกายภาพ PA = 24,600 + 1,750 = <strong>26,350</strong>
+                </li>
+                <li class="step-item">
+                  <strong>ตำแหน่งตรรกะ 2,300:</strong> ตรวจสอบ 2,300 &lt; 2,048 (เท็จ เกิน Limit!) → <strong>เกิด Trap / Addressing Error (Segmentation Fault)</strong> ฮาร์ดแวร์ตัดตอนทันที
+                </li>
+                <li class="step-item">
+                  <strong>ช่วงตำแหน่งกายภาพที่เข้าถึงได้:</strong> ตั้งแต่ 24,600 ถึง (24,600 + 2,048 - 1) = <strong>24,600 ถึง 26,647</strong>
+                </li>
+              </ul>
+
+              <div class="card-title" style="margin-top: 1.5rem; font-size: 1.1rem;">
+                <span class="icon" style="background: rgba(16,185,129,0.15); color: var(--accent-emerald);"><i class="fa-solid fa-users"></i></span>
+                การแชร์เพจ (Shared Pages) ประหยัดแรม (HW5 ข้อ 1.6)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6;">
+                ผู้ใช้ 60 คนเปิดโปรแกรมเดียวกัน (ส่วนโค้ด Reentrant 120 KB, ข้อมูลส่วนตัว 40 KB):
+                <br>• ไม่แชร์เพจ: ใช้ 60 × (120 + 40) = <strong>9,600 KB</strong>
+                <br>• แชร์เพจ: ใช้โค้ด 120 + ข้อมูลส่วนตัว (60 × 40 = 2,400) = <strong>2,520 KB</strong>
+                <br>• ประหยัดหน่วยความจำได้ถึง: <strong style="color: var(--accent-emerald);">73.75%</strong>
+              </p>
+            </div>
+          </div>
+
+          <!-- Paging & TLB Deep Dive with Numerical EMAT -->
+          <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-title">
+              <span class="icon" style="background: rgba(56,189,248,0.15); color: var(--accent-cyan);"><i class="fa-solid fa-microchip"></i></span>
+              การคำนวณ EMAT และการวิเคราะห์ขนาด Page Table (ข้อสอบจริง)
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem;">
+              <div>
+                <h4 style="color: var(--accent-cyan); margin-bottom: 0.5rem;"><i class="fa-solid fa-calculator"></i> คำนวณ EMAT (HW5 ข้อ 1.5)</h4>
+                <div class="formula-box">
+                  โจทย์: Hit Ratio (α) = 85%, TLB Time = 15 ns, RAM Time = 90 ns
+                  <span class="formula-sub">EMAT = 0.85 × (15 + 90) + 0.15 × (15 + 90 + 90)</span>
+                  <span class="formula-sub">EMAT = 0.85 × 105 + 0.15 × 195 = 89.25 + 29.25 = <strong>118.50 ns</strong></span>
+                  <span style="color: var(--accent-amber); margin-top: 0.35rem;">ช้ากว่าการเข้าถึง RAM โดยตรง: ((118.5 - 90) / 90) × 100 = <strong>31.67%</strong></span>
+                  <span style="color: var(--accent-emerald); margin-top: 0.25rem;">หากต้องการ EMAT ≤ 110 ns ต้องทำ Hit Ratio α ≥ <strong>94.44%</strong></span>
+                </div>
+              </div>
+
+              <div>
+                <h4 style="color: var(--accent-purple); margin-bottom: 0.5rem;"><i class="fa-solid fa-folder-tree"></i> การแบ่งบิตตารางเพจ 32-bit (HW5 ข้อ 1.1)</h4>
+                <div class="formula-box">
+                  ขนาด Page = 4 KB (2<sup>12</sup> ไบต์) → Page Offset (d) = <strong>12 บิต</strong>
+                  <span class="formula-sub">Page Number (p) = 32 - 12 = <strong>20 บิต</strong> (จุได้ 1,048,576 หน้า)</span>
+                  <span class="formula-sub">ขนาดตารางเพจชั้นเดียว = 1M หน้า × 4 ไบต์ = <strong>4 MB ต่อ 1 โปรเซส</strong></span>
+                  <span class="formula-sub">ถ้าใช้ตาราง 2 ระดับ: Outer Table = 10 บิต (4 KB), Inner Table = 10 บิต (4 KB)</span>
+                  <span style="color: #34d399; margin-top: 0.35rem;">ประหยัดแรมเพราะสร้าง Inner Table เฉพาะช่วงที่โปรเซสใช้งานจริง</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 5: CHAPTER 8 VIRTUAL MEMORY
+             ========================================== -->
+        <section id="tab-ch8" class="chapter-section">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2><i class="fa-solid fa-layer-group" style="color: var(--accent-purple);"></i> บทที่ 8 : หน่วยความจำเสมือน (Virtual Memory)</h2>
+              <p>Demand Paging, ลำดับขั้นตอน Page Fault 8 ขั้นตอน, การแทนที่หน้า FIFO / OPT / LRU และปัญหา Thrashing</p>
+            </div>
+            <span class="chapter-badge badge-ch8">
+              <i class="fa-solid fa-hard-drive"></i> Lecture Ch 8 & HW 5 Part 2-3
+            </span>
+          </div>
+
+          <div class="card-grid">
+            <!-- 8 Steps Page Fault -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(244,63,94,0.15); color: var(--accent-rose);"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                ลำดับขั้นตอนการจัดการ Page Fault 8 ขั้นตอน (ละเอียดสมบูรณ์)
+              </div>
+              <ul class="step-list">
+                <li class="step-item"><strong>1. ฮาร์ดแวร์ตรวจพบ:</strong> ซีพียูอ้างอิงตำแหน่งในตารางเพจ ตรวจพบบิตสถานะเป็น 'i' (Invalid)</li>
+                <li class="step-item"><strong>2. ส่งสัญญาณ Trap:</strong> เกิดฮาร์ดแวร์อินเทอร์รัปต์สลับการควบคุมไปยังระบบปฏิบัติการ</li>
+                <li class="step-item"><strong>3. ตรวจสอบสิทธิ์:</strong> OS ตรวจสอบใน Internal Table ว่าเป็นการอ้างอิงที่ถูกต้องตามกฎหมายหรือไม่ (หากไม่ถูกต้องจะสั่ง Abort ทันที)</li>
+                <li class="step-item"><strong>4. หาเฟรมว่าง:</strong> OS ค้นหา Free Frame ในหน่วยความจำหลัก (หากไม่มีเฟรมว่าง ต้องรัน Page Replacement Algorithm เพื่อหา Victim Frame)</li>
+                <li class="step-item"><strong>5. สั่งอ่านข้อมูลจากดิสก์:</strong> OS กำหนดตาราง I/O ให้อ่านหน้านั้นจาก Backing Store เข้าสู่เฟรมว่าง <span style="color: var(--accent-rose); font-weight:700;">(ขั้นตอนนี้ใช้เวลานานที่สุดในระบบ คิดเป็นกว่า 99.9% ของเวลาทั้งหมด!)</span></li>
+                <li class="step-item"><strong>6. ดิสก์ส่งสัญญาณเสร็จสิ้น:</strong> เมื่อ I/O เสร็จ ฮาร์ดแวร์ดิสก์จะส่งสัญญาณ Interrupt กลับมาแจ้ง OS</li>
+                <li class="step-item"><strong>7. อัปเดตตารางเพจ:</strong> OS บันทึกหมายเลขเฟรมกายภาพลงในตารางเพจและเปลี่ยนบิตสถานะเป็น 'v' (Valid)</li>
+                <li class="step-item"><strong>8. Restart คำสั่งเดิม:</strong> เปลี่ยนสถานะโปรเซสกลับสู่ Ready Queue และรีสตาร์ตคำสั่งเดิมที่ค้างอยู่ให้ทำงานต่อได้ตามปกติ</li>
+              </ul>
+            </div>
+
+            <!-- Thrashing & Degree of Multiprogramming -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(245,158,11,0.15); color: var(--accent-amber);"><i class="fa-solid fa-chart-line-down"></i></span>
+                ปัญหาการสลับหน้าอย่างรุนแรง (Thrashing)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+                <strong>Thrashing</strong> เกิดขึ้นเมื่อระบบใช้เวลาส่วนใหญ่ไปกับการ <strong>สลับหน้าเข้า-ออกจากดิสก์ (Paging Activity)</strong> มากกว่าการประมวลผลงานจริงของโปรเซส ส่งผลให้ CPU Utilization ตกลงเกือบเป็นศูนย์:
+              </p>
+
+              <div class="diagram-figure">
+                <img src="assets/images/thrashing_curve.png" alt="Thrashing Curve" loading="lazy">
+                <div class="diagram-caption">
+                  <i class="fa-solid fa-image"></i> รูปที่ 8.1: กราฟความสัมพันธ์ระหว่าง CPU Utilization และ Degree of Multiprogramming (HW5 ข้อ 3.3)
+                </div>
+              </div>
+
+              <div class="callout callout-danger" style="margin-bottom: 0;">
+                <div class="callout-title"><i class="fa-solid fa-shield-virus"></i> การแก้ไขปัญหา Thrashing</div>
+                1. <strong>ลด Degree of Multiprogramming:</strong> สั่ง Suspend พักการทำงานของบางโปรเซสชั่วคราวและสลับออกไปอยู่นอกแรม เพื่อคืนเฟรมให้โปรเซสที่เหลือ
+                <br>2. <strong>Working-Set Model:</strong> กำหนดกรอบพารามิเตอร์เดลตา (Δ) เพื่อคำนวณหาเซตของหน้าที่ถูกใช้งานจริงในปัจจุบัน หากผลรวมของ Working Sets ทุกโปรเซสเกินกว่าจำนวนเฟรมที่มี จะไม่รับโปรเซสใหม่เข้ามา
+                <br>3. <strong>Page-Fault Frequency (PFF):</strong> กำหนดเพดานอัตราการเกิด Page Fault หากสูงเกินเพดานแสดงว่าขาดแคลนเฟรม (ต้องเพิ่มเฟรมให้) หากต่ำเกินไปแสดงว่ามีเฟรมเหลือเฟือ (ดึงเฟรมคืน)
+              </div>
+            </div>
+          </div>
+
+          <!-- Page Replacement Comparison (HW 5 Part 3 Detailed Reference String) -->
+          <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-title">
+              <span class="icon" style="background: rgba(16,185,129,0.15); color: var(--accent-emerald);"><i class="fa-solid fa-right-left"></i></span>
+              การจำลองอัลกอริทึม Page Replacement จากชุดข้อมูลจริง (HW5 ตอนที่ 3 ข้อ 1)
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.7;">
+              พิจารณา Reference String: <code>2, 3, 2, 1, 5, 2, 4, 5, 3, 2, 5, 2</code> (กำหนดขนาด 3 Frames):
+            </p>
+
+            <div class="diagram-figure">
+              <img src="assets/images/page_replacement_chart.png" alt="Page Replacement Comparison Chart" loading="lazy">
+              <div class="diagram-caption">
+                <i class="fa-solid fa-image"></i> รูปที่ 8.2: กราฟเปรียบเทียบผลรวม Page Faults ระหว่างอัลกอริทึมต่างๆ
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="os-table">
+                <thead>
+                  <tr>
+                    <th>อัลกอริทึม</th>
+                    <th>หลักการเลือก Victim Frame</th>
+                    <th>จำนวน Page Faults (HW5)</th>
+                    <th>Belady's Anomaly</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>FIFO (First-In, First-Out)</strong></td>
+                    <td>แทนที่หน้าที่ถูกโหลดเข้าสู่หน่วยความจำมาเป็นเวลานานที่สุดเป็นตัวแรก</td>
+                    <td><strong style="color: var(--accent-rose);">9 ครั้ง</strong> (ลำดับข้อผิด: 1, 2, 4, 5, 6, 7, 9, 10, 11)</td>
+                    <td><span style="color: var(--accent-rose); font-weight:700;">เกิดได้</span> (เช่น สตริง 1,2,3,4,1,2,5... เพิ่มเฟรมแต่ Fault เพิ่ม)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Optimal (OPT)</strong></td>
+                    <td>แทนที่หน้าที่จะ <em>ไม่ถูกใช้งานอีกนานที่สุดในอนาคต</em> (ทฤษฎีอุดมคติ ไม่สามารถสร้างจริงได้)</td>
+                    <td><strong style="color: var(--accent-emerald);">7 ครั้ง (ต่ำสุดตามทฤษฎี)</strong></td>
+                    <td><span style="color: var(--accent-emerald); font-weight:700;">ไม่เกิดแน่นอน</span> (เป็น Stack Algorithm)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LRU (Least Recently Used)</strong></td>
+                    <td>แทนที่หน้าที่ <em>ไม่ได้ถูกใช้งานมาเป็นเวลานานที่สุดในอดีต</em> (ใช้สแต็กหรือตัวนับเวลา)</td>
+                    <td><strong style="color: var(--accent-cyan);">7 ครั้ง (เท่ากับ OPT ในชุดนี้!)</strong></td>
+                    <td><span style="color: var(--accent-emerald); font-weight:700;">ไม่เกิดแน่นอน</span> (เป็น Stack Algorithm)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 6: ADVANCED SOTA & FILE SYSTEM
+             ========================================== -->
+        <section id="tab-advanced" class="chapter-section">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2><i class="fa-solid fa-bolt" style="color: var(--accent-cyan);"></i> ระบบไฟล์และการประมวลผลพร้อมกันสมัยใหม่ (SOTA Trends)</h2>
+              <p>File Allocation Strategies, Inodes, Stack vs Heap Memory Allocation และ Work-Stealing Scheduling Runtime</p>
+            </div>
+            <span class="chapter-badge badge-ch7">
+              <i class="fa-solid fa-atom"></i> Report Ch 9 & 10 Integration
+            </span>
+          </div>
+
+          <div class="card-grid">
+            <!-- Modern Concurrency Work-Stealing -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(56,189,248,0.15); color: var(--accent-cyan);"><i class="fa-solid fa-microchip"></i></span>
+                Work-Stealing Runtime Scheduling (Go Runtime / Tokio)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+                ในระบบปฏิบัติการและรันไทม์ยุคใหม่ การจัดคิวแบบ Multi-Core แก้ปัญหาคอขวดของ Global Ready Queue ด้วย <strong>Work-Stealing Deque (Double-Ended Queue)</strong> ประจำแต่ละ Thread:
+              </p>
+              
+              <div class="diagram-figure">
+                <img src="assets/images/figure_9_2_work_stealing.png" alt="Work-Stealing Scheduling Architecture" loading="lazy">
+                <div class="diagram-caption">
+                  <i class="fa-solid fa-image"></i> รูปที่ 9.2: สถาปัตยกรรม Work-Stealing: Thread เจ้าของดึงงานฝั่ง LIFO ส่วน Thread อื่นที่ว่างจะมาขโมยงานจากฝั่ง FIFO
+                </div>
+              </div>
+
+              <div class="callout callout-info">
+                <div class="callout-title"><i class="fa-solid fa-lightbulb"></i> ข้อได้เปรียบทางวิศวกรรม</div>
+                • ขจัด Lock Contention บนคิวส่วนกลางเกือบ 100%<br>
+                • รักษา Data Locality ของแคช L1/L2 ให้สูงอยู่เสมอ<br>
+                • ป้องกันปัญหา Load Imbalance โดย Thread ที่ว่างจะขโมยงานจากคิวที่มีงานคั่งค้างโดยอัตโนมัติ
+              </div>
+            </div>
+
+            <!-- Stack vs Heap Allocation -->
+            <div class="card">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(168,85,247,0.15); color: var(--accent-purple);"><i class="fa-solid fa-layer-group"></i></span>
+                Stack vs Heap Memory & Escape Analysis
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+                การจัดการหน่วยความจำขั้นสูงระดับ Kernel และ Compiler สมัยใหม่:
+              </p>
+
+              <div class="diagram-figure">
+                <img src="assets/images/figure_9_1_stack_allocation.png" alt="Stack vs Heap Allocation" loading="lazy">
+                <div class="diagram-caption">
+                  <i class="fa-solid fa-image"></i> รูปที่ 9.1: การวิเคราะห์ Escape Analysis ย้ายการจัดสรรจาก Heap ที่ช้าและต้องพึ่งพา GC ไปไว้บน Stack ที่มีความเร็วสูงระดับแคช
+                </div>
+              </div>
+
+              <div class="callout callout-success">
+                <div class="callout-title"><i class="fa-solid fa-bolt"></i> Escape Analysis Optimization</div>
+                หากคอมไพเลอร์พิสูจน์ได้ว่าตัวแปรไม่รั่วไหลออกนอกฟังก์ชัน จะจัดสรรบน <strong>Stack Frame</strong> ทันที ทำให้ประหยัด Overhead และไม่ต้องคืนพื้นที่ผ่าน Garbage Collection
+              </div>
+            </div>
+
+            <!-- Figure 10.1 Over-subscription Cycle Card -->
+            <div class="card" style="grid-column: 1 / -1;">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(244,63,94,0.15); color: var(--accent-rose);"><i class="fa-solid fa-arrows-spin"></i></span>
+                วงจรการลดลงของประสิทธิภาพเมื่อจัดสรรเธรดเกินพิกัด (Over-subscription & USL Law)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+                เมื่อเพิ่มจำนวนเธรดเกินขีดความสามารถของฮาร์ดแวร์คอร์กายภาพ (เช่น 16 เธรด บน 12 Cores) จะเกิดปรากฏการณ์ความเร็วถดถอย (Retrograde Scalability) ตามแบบจำลอง <strong>Universal Scalability Law (USL)</strong> โดยมีสาเหตุมาจาก Preemption Storm, Cache Thrashing, และ Pipeline Stalls:
+              </p>
+
+              <div class="diagram-figure">
+                <img src="assets/images/figure_10_1_oversubscription.png" alt="Over-subscription Performance Cycle" loading="lazy">
+                <div class="diagram-caption">
+                  <i class="fa-solid fa-image"></i> รูปที่ 10.1: วงจรการลดลงของประสิทธิภาพเมื่อเกิดภาวะจัดสรรเธรดเกินพิกัด (Over-subscription Retrograde Cycle)
+                </div>
+              </div>
+
+              <div class="callout callout-danger" style="margin-bottom: 0;">
+                <div class="callout-title"><i class="fa-solid fa-triangle-exclamation"></i> สรุปหลักการวิศวกรรมสำหรับข้อสอบและรายงาน</div>
+                • การเพิ่มเธรดมีจุดที่ให้ผลตอบแทนสูงสุด (Peak Inflection Point) เมื่อเธรดเท่ากับคอร์กายภาพ (12 Cores)<br>
+                • เมื่อฝืนเพิ่มเป็น 16 เธรด Involuntary Context Switch พุ่งทะลุ 4,210 ครั้ง ทำให้ประสิทธิภาพช้าลงกว่าเดิมอย่างชัดเจน
+              </div>
+            </div>
+
+            <!-- Figure 10.2 Concurrency Architecture Decision Flowchart Card -->
+            <div class="card" style="grid-column: 1 / -1;">
+              <div class="card-title">
+                <span class="icon" style="background: rgba(16,185,129,0.15); color: var(--accent-emerald);"><i class="fa-solid fa-sitemap"></i></span>
+                แผนผังการตัดสินใจเลือกใช้แบบจำลองภาวะพร้อมกัน (Concurrency Model Decision Flowchart)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+                กรอบการตัดสินใจทางวิศวกรรมสำหรับเลือกใช้สถาปัตยกรรม Concurrency ให้เหมาะสมกับลักษณะงาน (Workload) ระหว่าง <strong>Multiprocessing</strong>, <strong>Fixed OS Thread Pool</strong>, <strong>Standard Worker Pool</strong>, และ <strong>Lightweight M:N Threads / Event-Driven</strong>:
+              </p>
+
+              <div class="diagram-figure">
+                <img src="assets/images/figure_10_2_decision_flowchart.png" alt="Concurrency Model Decision Flowchart" loading="lazy">
+                <div class="diagram-caption">
+                  <i class="fa-solid fa-image"></i> รูปที่ 10.2: แผนผังการตัดสินใจเชิงวิศวกรรมสำหรับการเลือกแบบจำลองภาวะพร้อมกัน (Architecture Decision Flowchart)
+                </div>
+              </div>
+
+              <div class="callout callout-info" style="margin-bottom: 0;">
+                <div class="callout-title"><i class="fa-solid fa-compass"></i> เกณฑ์การตัดสินใจหลัก (Key Decision Rules)</div>
+                1. <strong>ต้องการ Fault Isolation หรือแยกสิทธิ์เด็ดขาด:</strong> เลือก <em>Multiprocessing</em> (เช่น Google Chrome แยกแท็บละโปรเซส)<br>
+                2. <strong>งานหนักทาง CPU (CPU-Bound):</strong> เลือก <em>Fixed OS Thread Pool (1:1)</em> โดยจำกัดจำนวนเธรดเท่ากับจำนวนคอร์กายภาพ (Threads = Cores)<br>
+                3. <strong>งานหนักทาง Network/Disk I/O ที่ต้องรองรับเกิน 10,000 การเชื่อมต่อ (C10K):</strong> เลือก <em>Lightweight M:N Threads (Go Goroutines / Java 21 Virtual Threads / Tokio)</em>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 7: INTERACTIVE CALCULATORS & SIMULATORS
+             ========================================== -->
+        <section id="tab-calculators" class="chapter-section">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2><i class="fa-solid fa-calculator" style="color: var(--accent-cyan);"></i> ห้องทดลองคำนวณและจำลองข้อสอบสด (Live Simulators)</h2>
+              <p>เครื่องคิดเลขจำลองโจทย์สอบจริง: คำนวณ EMAT สด และจำลองอัลกอริทึม Page Replacement</p>
+            </div>
+            <span class="chapter-badge badge-ch7">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Interactive Lab
+            </span>
+          </div>
+
+          <!-- Tool 1: EMAT Calculator -->
+          <div class="tool-container">
+            <div class="tool-header">
+              <h3><i class="fa-solid fa-microchip" style="color: var(--accent-cyan);"></i> 1. เครื่องคำนวณ Effective Memory Access Time (EMAT)</h3>
+              <p style="color: var(--text-muted); font-size: 0.92rem;">
+                ป้อนค่าตัวแปรเพื่อคำนวณเวลาเข้าถึงหน่วยความจำจริง ระบบจะแจกแจงสูตรและแสดงวิธีคิดอย่างละเอียดทันที
+              </p>
+            </div>
+
+            <div class="tool-form-grid">
+              <div class="input-group">
+                <label for="calc-hit-ratio">TLB Hit Ratio (α) [%]</label>
+                <input type="number" id="calc-hit-ratio" class="input-control" value="85" min="0" max="100" step="1">
+              </div>
+              <div class="input-group">
+                <label for="calc-tlb-time">TLB Access Time (t_tlb) [ns]</label>
+                <input type="number" id="calc-tlb-time" class="input-control" value="15" min="1" step="1">
+              </div>
+              <div class="input-group">
+                <label for="calc-ram-time">RAM Access Time (t_mem) [ns]</label>
+                <input type="number" id="calc-ram-time" class="input-control" value="90" min="1" step="1">
+              </div>
+            </div>
+
+            <div class="calc-result-box" id="ematResultBox">
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">ผลลัพธ์เวลาเฉลี่ย EMAT:</div>
+              <div class="calc-result-val" id="ematResultVal">118.50 ns</div>
+              <div id="ematExplanation" style="font-size: 0.9rem; color: var(--text-dim); line-height: 1.6; font-family: 'Fira Code', monospace;"></div>
+            </div>
+          </div>
+
+          <!-- Tool 2: Page Replacement Simulator -->
+          <div class="tool-container">
+            <div class="tool-header">
+              <h3><i class="fa-solid fa-arrows-spin" style="color: var(--accent-purple);"></i> 2. ตัวจำลองการสลับหน้า (Page Replacement Simulator: FIFO vs LRU)</h3>
+              <p style="color: var(--text-muted); font-size: 0.92rem;">
+                ป้อนสายอ้างอิงหน้า (Reference String) และจำนวนกรอบ (Frames) เพื่อเปรียบเทียบการเกิด Page Fault ระหว่าง FIFO และ LRU สดๆ
+              </p>
+            </div>
+
+            <div class="tool-form-grid">
+              <div class="input-group" style="grid-column: span 2;">
+                <label for="sim-ref-string">Reference String (คั่นด้วยวรรคหรือจุลภาค)</label>
+                <input type="text" id="sim-ref-string" class="input-control" value="2, 3, 2, 1, 5, 2, 4, 5, 3, 2, 5, 2">
+              </div>
+              <div class="input-group">
+                <label for="sim-frames">จำนวนเฟรม (Frames)</label>
+                <input type="number" id="sim-frames" class="input-control" value="3" min="1" max="8">
+              </div>
+              <div class="input-group" style="align-self: flex-end;">
+                <button class="btn-primary" id="runSimBtn" style="width: 100%; justify-content: center;">
+                  <i class="fa-solid fa-play"></i> เริ่มจำลองผล
+                </button>
+              </div>
+            </div>
+
+            <div id="simResultsOutput" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+              <!-- FIFO Result Card -->
+              <div class="card" style="margin-bottom: 0;">
+                <h4 style="color: var(--accent-rose); margin-bottom: 0.75rem;"><i class="fa-solid fa-clock-rotate-left"></i> FIFO Replacement</h4>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-rose);" id="fifoFaultCount">Page Faults: 9 ครั้ง</div>
+                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0.25rem;" id="fifoHitRate">Hit Ratio: 25.0%</div>
+                <div id="fifoTimeline" style="margin-top: 1rem; font-size: 0.85rem; max-height: 240px; overflow-y: auto; background: var(--bg-glass); padding: 0.75rem; border-radius: var(--radius-sm);"></div>
+              </div>
+
+              <!-- LRU Result Card -->
+              <div class="card" style="margin-bottom: 0;">
+                <h4 style="color: var(--accent-cyan); margin-bottom: 0.75rem;"><i class="fa-solid fa-history"></i> LRU Replacement</h4>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-cyan);" id="lruFaultCount">Page Faults: 7 ครั้ง</div>
+                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0.25rem;" id="lruHitRate">Hit Ratio: 41.7%</div>
+                <div id="lruTimeline" style="margin-top: 1rem; font-size: 0.85rem; max-height: 240px; overflow-y: auto; background: var(--bg-glass); padding: 0.75rem; border-radius: var(--radius-sm);"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 8: INTERACTIVE PRACTICE QUIZ (20 QUESTIONS)
+             ========================================== -->
+        <section id="tab-quiz" class="chapter-section">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2><i class="fa-solid fa-circle-question" style="color: #fb7185;"></i> แบบทดสอบเสมือนจริงท้ายบท (OS Final Practice Exam 20 ข้อ)</h2>
+              <p>แบบทดสอบ 20 ข้อ คัดสรรโจทย์จริงจากการบ้านและข้อสอบปลายภาค ตอบแล้วมีเฉลยพร้อมอธิบายทันที</p>
+            </div>
+            <span class="chapter-badge badge-ch5">
+              <i class="fa-solid fa-trophy"></i> 20 High-Yield Questions
+            </span>
+          </div>
+
+          <div class="quiz-wrapper">
+            <div class="quiz-header">
+              <div>
+                <span style="font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">คำถามที่</span>
+                <h3 style="font-size: 1.4rem; font-weight: 700;" id="quizProgressText">ข้อ 1 จากทั้งหมด 20 ข้อ</h3>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 0.85rem; color: var(--text-dim);">คะแนนปัจจุบัน</span>
+                <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--accent-cyan);" id="quizScoreText">0 / 20</h3>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="quiz-progress-bar">
+              <div class="quiz-progress-fill" id="quizProgressFill"></div>
+            </div>
+
+            <!-- Question Area -->
+            <div class="question-card" id="questionCard">
+              <div class="question-text" id="questionText">กำลังโหลดคำถาม...</div>
+              <div class="options-grid" id="optionsGrid"></div>
+              
+              <!-- Immediate Explanation Box -->
+              <div class="explanation-card" id="explanationCard">
+                <div style="font-weight: 700; color: var(--accent-cyan); margin-bottom: 0.35rem;" id="explanationTitle">
+                  <i class="fa-solid fa-lightbulb"></i> คำอธิบายและเฉลยละเอียด
+                </div>
+                <div id="explanationText" style="line-height: 1.6;"></div>
+              </div>
+            </div>
+
+            <!-- Quiz Controls -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.75rem;">
+              <button class="btn-icon" id="prevQuestionBtn" title="ข้อก่อนหน้า" disabled>
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+              <div style="display: flex; gap: 0.75rem;">
+                <button class="btn-primary" id="resetQuizBtn" style="background: rgba(255,255,255,0.08); color: var(--text-main); box-shadow: none;">
+                  <i class="fa-solid fa-rotate-right"></i> เริ่มทำใหม่
+                </button>
+                <button class="btn-primary" id="nextQuestionBtn">
+                  ข้อถัดไป <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

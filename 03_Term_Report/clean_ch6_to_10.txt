@@ -1,0 +1,513 @@
+
+
+==================== บทที่ 6: ====================
+
+[P:Heading 1] บทที่ 6: การทดลองและวัดผลประสิทธิภาพเชิงประจักษ์ (Implementation, Methodology & Empirical Benchmarking)
+[P:Heading 2] 6.1 การอิมพลีเมนต์โปรแกรมทดสอบด้วยภาษา C (POSIX Pthreads)
+[P:Normal] เพื่อพิสูจน์ทฤษฎีทางสถาปัตยกรรมที่ได้ศึกษามาทั้งหมด ในบทนี้จะดำเนินการทดลองเชิงประจักษ์ (Empirical Experimentation) โดยเลือกใช้ ภาษา C มาตรฐาน (C11) ร่วมกับไลบรารี POSIX Threads (Pthreads) บนระบบปฏิบัติการ Linux ซึ่งเป็นสภาพแวดล้อมมาตรฐานในการวัดประสิทธิภาพเคอร์เนล [Love, 2010]
+[P:Normal] ฟังก์ชันพื้นฐานของ Pthreads ที่ใช้ในการควบคุมเธรด ประกอบด้วย:
+[P:Normal] pthread_create(): ฟังก์ชันไลบรารี POSIX Threads สำหรับสร้างเธรด โดย implementation ร้องขอบริการเคอร์เนล เช่น clone/clone3 บน Linux
+[P:Normal] * pthread_join(): สั่งให้เธรดแม่ระงับการทำงานเพื่อรอคอยจนกว่าเธรดลูกจะทำงานเสร็จสิ้นและคืนทรัพยากร
+[P:Normal] * pthread_mutex_init(), pthread_mutex_lock(), pthread_mutex_unlock(): ชุดคำสั่งบริหารจัดการ Mutex
+[P:Normal] โจทย์การทดลอง: การคูณเมทริกซ์ขนาดใหญ่ (Matrix Multiplication Workload)
+[P:Normal] โครงสร้างโปรแกรมหลักทำการคำนวณการคูณเมทริกซ์หนาแน่น C = A × B ขนาด 1024 × 1024 สมาชิก ซึ่งมีปริมาณการคำนวณเลขทศนิยมรวม O(N^3) ≈ 2 × 10^9 การดำเนินการ (Floating-Point Operations) จัดเป็นภาระงานประเภท CPU-bound แท้จริง โครงสร้างข้อมูลและการแบ่งงานถูกอิมพลีเมนต์ ดังนี้:
+
+[TABLE: 1x1]
+typedef struct {     int thread_id;     int num_threads;     int matrix_size;     double **A, **B, **C; } thread_data_t;  void* multiply_worker(void* arg) {     thread_data_t* data = (thread_data_t*)arg;     int N = data->matrix_size;     // การแบ่งข้อมูลแบบแถวตามจำนวนเธรด (Row-wise Striping)     int rows_per_thread = N / data->num_threads;     int start_row = data->thread_id * rows_per_thread;     int end_row = (data->thread_id == data->num_threads - 1) ? N : start_row + rows_per_thread;      for (int i = start_row; i < end_row; i++) {         for (int k = 0; k < N; k++) {             for (int j = 0; j < N; j++) {                 data->C[i][j] += data->A[i][k] * data->B[k][j];             }         }     }     pthread_exit(NULL); }
+[END TABLE]
+
+[P:Normal] การวิเคราะห์ทางวิศวกรรมของโค้ดทดสอบ (Code Analysis & Optimizations)
+[P:Normal] ตัวอย่างโปรแกรมในหัวข้อนี้ใช้การแบ่งงานตามช่วงแถวและสลับลำดับลูปเพื่อรักษา spatial locality ต้องตรวจ alignment และวัดผลจริงก่อนสรุปขนาดประโยชน์ที่ได้รับ [Hennessy & Patterson, 2017]
+[P:Normal] 1. การลดโอกาส False Sharing ด้วยการแบ่งช่วงแถว:
+[P:Normal] การแบ่งแต่ละ worker ให้เขียนช่วงแถวที่ไม่ซ้ำกันช่วยหลีกเลี่ยงการเขียนสมาชิกเดียวกันและลดโอกาส false sharing ระหว่าง worker อย่างไรก็ดีการรับรองว่าไม่มี false sharing ต้องตรวจขอบเขต cache line และ alignment ของข้อมูลจริง ไม่ใช่อาศัย row-major order เพียงอย่างเดียว [Drepper, 2007]
+[P:Normal] 2. การสลับลำดับลูป i-k-j เพื่อเพิ่ม Spatial Locality (Loop Interchange):
+[P:Normal] ลูป i-k-j ทำให้การเข้าถึง B[k][j] และ C[i][j] ภายในลูป j เป็นการไล่สมาชิกตามแถวอย่างต่อเนื่อง ต่างจากลูป i-j-k ที่ไล่ B ข้ามแถว วิธีนี้เป็น loop interchange ไม่ใช่ loop tiling เพราะไม่มี block loops และ tile size ขนาด speedup ของการปรับลูปต้องวัดเทียบก่อน/หลังบนเครื่องเดียวกัน [Hennessy & Patterson, 2017]
+[P:Normal] การจัดการเธรดในฟังก์ชัน `main()`:
+[P:Normal] โปรแกรมหลักจะทำการสร้างอาร์เรย์ของเธรด pthread_t threads[num_threads] และโครงสร้างพารามิเตอร์ thread_data_t thread_data[num_threads] จากนั้นวนลูปเรียก pthread_create() เพื่อส่งเธรดลงสู่ระบบ และวนลูปเรียก pthread_join() เพื่อรอคอยให้ทุกเธรดคำนวณเสร็จสมบูรณ์ ก่อนที่จะทำการหยุดจับเวลาการทำงาน [IEEE, 1995]
+[P:Heading 2] 6.2 กรณีศึกษาเปรียบเทียบ: ข้อจำกัดของ Runtime Lock (Python GIL)
+[P:Normal] ในขณะที่ภาษา C/C++ มอบพลังการควบคุมมัลติเธรดในระดับฮาร์ดแวร์อย่างสมบูรณ์แบบ ภาษาโปรแกรมระดับสูงที่ได้รับความนิยมสูงสุดในปัจจุบันอย่างภาษา Python กลับมีพฤติกรรมที่แตกต่างออกไปอย่างสิ้นเชิงเนื่องจากกลไก Global Interpreter Lock (GIL) [Gross, 2023]
+[P:Normal] กลไกของ GIL ใน CPython:
+[P:Normal] CPython (ตัวแปลภาษามาตรฐานของ Python) ถูกออกแบบระบบจัดการหน่วยความจำให้อยู่บนพื้นฐานของ Reference Counting (การนับจำนวนตัวชี้เพื่อทำลายออบเจกต์เมื่อไม่มีผู้ใช้) เพื่อป้องกันไม่ให้การนับเลขอ้างอิงเกิด Race Condition ผู้พัฒนาในยุคแรกจึงได้นำมิวเท็กซ์ขนาดใหญ่ครอบตัวแปลภาษาไว้ทั้งระบบ เรียกว่า Global Interpreter Lock (GIL) ดังแสดงในรูปที่ 6.1 [Gross, 2023]
+
+[TABLE: 1x1]
+[ Python Thread 1 ]     [ Python Thread 2 ]     [ Python Thread 3 ]            \                       |                       /             -----------------------+-----------------------                                    ↓                    [ Global Interpreter Lock (GIL) ]  <-- แย่งกันถือ Lock ตัวเดียว                                    ↓                        [ 1 Interpreter Core ]                                    ↓                          [ Single CPU Execution ]
+[END TABLE]
+
+[P:Normal] รูปที่ 6.1 คอขวดของ Python Global Interpreter Lock (GIL) บนซีพียูแบบ Multi-Core
+[P:Normal] ผลกระทบต่อภาระงานประเภท CPU-Bound:
+[P:Normal] เนื่องจาก GIL บังคับว่า “ในแต่ละช่วงเวลา จะมีเธรดของ Python เพียงเธรดเดียวเท่านั้นที่ได้รับอนุญาตให้ประมวลผลคำสั่ง Bytecode” ต่อให้ระบบมีซีพียู 16 คอร์ และโปรแกรมเมอร์สั่งสร้าง 16 Python Threads เพื่อคำนวณคณิตศาสตร์ ผลลัพธ์ที่ได้คือ:
+[P:Normal] * เธรดทั้ง 16 จะต้องผลัดกันแย่งชิง GIL ตลอดเวลา
+[P:Normal] สำหรับ pure-Python CPU-bound code การเพิ่มเธรดใน build ที่เปิด GIL ไม่ได้ทำให้ bytecode รันพร้อมกันหลายคอร์ และอาจช้าลงจาก scheduling/lock overhead แต่ขนาดผลกระทบขึ้นกับงาน Native extensions บางชนิดปล่อย GIL ระหว่างคำนวณได้ [Gross, 2023]
+[P:Normal] อย่างไรก็ดี สำหรับงานประเภท I/O-Bound* (เช่น การดาวน์โหลดเว็บไซต์ หรือรอคอยฐานข้อมูล) Python Thread จะยอมปล่อย GIL ระหว่างที่รอ I/O ทำให้มัลติเธรดใน Python ยังคงมีประโยชน์สูงสำหรับงานเครือข่าย [Gross, 2023]
+[P:Normal] ความก้าวหน้าล่าสุด: ยุคแห่ง Free-threaded Python (Python 3.13 PEP 703)
+[P:Normal] ข้อจำกัดของ GIL ได้รับการวิพากษ์วิจารณ์มายาวนานกว่าสองทศวรรษ จนกระทั่งในเวอร์ชัน Python 3.13 (เปิดตัวในปลายปี ค.ศ. 2024) ชุมชนนักพัฒนาภาษา Python ได้บรรลุเป้าหมายครั้งประวัติศาสตร์ด้วยการผนวกรวมข้อเสนอ PEP 703 (Making the Global Interpreter Lock Optional in CPython) ซึ่งนำเสนอโหมดคอมไพล์พิเศษแบบ "Free-threaded Build" ที่สามารถปลดล็อกและปิดการทำงานของ GIL ได้อย่างสมบูรณ์ [Gross, 2023]
+[P:Normal] เทคโนโลยีวิศวกรรมที่ใช้แทนที่ GIL:
+[P:Normal] การนำ GIL ออกโดยไม่ก่อให้เกิดความเสียหายต่อโครงสร้างความปลอดภัยของหน่วยความจำ อาศัยเทคนิคขั้นสูง 3 ประการ:
+[P:Normal] 1. Biased Reference Counting: ตัวแปรที่ถูกเข้าถึงโดยเธรดเดี่ยวจะใช้การนับแบบรวดเร็วโดยไม่ใช้คำสั่ง Atomic แต่หากตัวแปรถูกแชร์ข้ามเธรด ระบบจะเปลี่ยนไปใช้ Atomic Operations โดยอัตโนมัติ
+[P:Normal] 2. Mimalloc Memory Allocator: การนำตัวจัดสรรหน่วยความจำประสิทธิภาพสูงของ Microsoft (Mimalloc) มาใช้ เพื่อให้แต่ละเธรดมี Heap Arena เฉพาะตัว ลดการแย่งชิงแรมข้ามคอร์
+[P:Normal] 3. Container Thread-Safety: CPython ใช้ per-object locks ป้องกัน list/dict/set และใช้ optimistic reads สำหรับบาง operation ร่วมกับกลไกจัดการหน่วยความจำ ไม่ใช่เปลี่ยน operation ทั้งหมดเป็น Lock-Free หรือ RCU [Gross, 2023]
+[P:Normal] การทดสอบเปรียบเทียบในสภาพแวดล้อมจริง:
+[P:Normal] ข้อมูลเปรียบเทียบที่รายงานสำหรับงานคำนวณตัวเลขมีผลของ standard build และ free-threaded build ดังต่อไปนี้ การประเมิน scaling ภายใน build ต้องใช้ baseline ของ build เดียวกัน:
+[P:Normal] Standard build ที่เปิด GIL: 1 เธรดใช้ 10.2 วินาที และ 4 เธรดใช้ 11.8 วินาทีในชุดข้อมูลที่รายงาน การตีความต้องควบคุมงานที่คำนวณให้เหมือนกัน
+[P:Normal] Free-threaded build แบบ 4 เธรดใช้ 2.7 วินาที อัตราส่วน 10.2/2.7 ≈ 3.78 เท่าเป็นการเปรียบเทียบข้าม build กับ standard แบบ 1 เธรด ไม่ใช่หลักฐาน scaling 3.78 เท่าภายใน free-threaded build ต้องรายงานเวลา free-threaded แบบ 1 เธรดและตรวจผลคำนวณก่อนสรุป speedup
+[P:Heading 2] 6.3 ระเบียบวิธีดำเนินการทดลองอย่างเป็นระบบตามมาตรฐานวิชาการ (Academic Methodology)
+[P:Normal] เพื่อให้ผลการทดลองมีความน่าเชื่อถือทางวิทยาศาสตร์ สามารถทำการทดลองซ้ำได้ (Reproducibility) และสอดคล้องกับมาตรฐานการตีพิมพ์ในระดับสากล การทดลองนี้จึงได้รับการออกแบบอย่างรัดกุมตามระเบียบวิธีวิจัยเชิงประจักษ์ (Empirical Systems Research Methodology) [Mytkowicz et al., 2009]
+[P:Normal] 1. รายละเอียดสภาพแวดล้อมระบบทดสอบ (Testbed Hardware & Software Environment):
+[P:Normal] ตารางที่ 6.1 แสดงข้อมูลจำเพาะอย่างละเอียดของเครื่องคอมพิวเตอร์ที่ใช้ในการทดลอง:
+[P:Normal] ตารางที่ 6.1: ข้อมูลจำเพาะของสภาพแวดล้อมฮาร์ดแวร์และซอฟต์แวร์ทดสอบ
+
+[TABLE: 8x2]
+องค์ประกอบของระบบ | รายละเอียดสเปกที่ใช้ในการทดลองจริง
+หน่วยประมวลผลกลาง (CPU) | Intel Core i7-12700H (14 Cores / 20 Threads: 6 Performance Cores + 8 Efficient Cores)
+ความถี่สัญญาณนาฬิกา | Base Clock 2.30 GHz (Boost สูงสุด 4.70 GHz)
+ลำดับชั้นแคช (Cache) | L1d รวม 544 KiB; L2 รวม 11.5 MiB; L3 รวม 24 MiB ตามข้อมูลระบบในภาคผนวก แคชของ P-core และ E-core มีขนาดและขอบเขตการแชร์ต่างกัน
+หน่วยความจำหลัก (RAM) | 16 GB DDR4 Dual-Channel บัส 3200 MHz
+ระบบปฏิบัติการ (OS) | Ubuntu 22.04.4 LTS (Linux Kernel เวอร์ชัน 6.5.0-35-generic x86-64)
+คอมไพเลอร์ (Compiler) | GCC (Ubuntu 11.4.0) ใช้แฟล็กการปรับแต่ง: -O2 -pthread -march=native
+ไลบรารีเธรด (Threading Lib) | GNU C Library (glibc) เวอร์ชัน 2.35 (อิมพลีเมนต์ NPTL)
+[END TABLE]
+
+[P:Normal] 2. การเลือกชนิดของภาระงาน (Workload Selection):
+[P:Normal] Workload 1 (CPU-Bound Task):* การคูณเมทริกซ์ขนาด 1024 × 1024 จุดทศนิยมแบบ double precision เน้นการคำนวณอย่างหนักหน่วงในแคชและรีจิสเตอร์
+[P:Normal] Workload 2 (I/O-Bound): การอ่านสุ่มบล็อกขนาด 4 KiB จำนวน 10,000 operations เพื่อศึกษาผลจำนวน worker ต่อ throughput ต้องกำหนดไฟล์ อุปกรณ์ ระบบไฟล์ และ page-cache policy ให้ชัดในชุดทดลอง
+[P:Normal] 3. การควบคุมตัวแปรกวนและสภาพแวดล้อมการทดลอง (Control of Confounding Variables)
+[P:Normal] ในการทดสอบประสิทธิภาพระบบคอมพิวเตอร์ มักมี "ตัวแปรกวน" (Noise & Confounding Factors) ที่ทำให้ผลการทดลองคลาดเคลื่อน การทดลองนี้จึงได้กำหนดมาตรการควบคุมขั้นสูงตามหลักการของ Mytkowicz et al. [2009]:
+[P:Normal] ก. การล็อกความถี่ซีพียู (CPU Frequency Governor Lockdown):
+[P:Normal] การตั้ง governor เป็น performance เลือกนโยบายเน้นประสิทธิภาพ แต่ไม่ปิด Turbo Boost หรือรับประกันความถี่คงที่โดยตัวมันเอง การทดลองต้องบันทึก driver/โหมด เช่น intel_pstate และ HWP รวมทั้ง turbo policy, frequency limits และความถี่ที่วัดระหว่างรัน คำสั่งต่อไปนี้เปลี่ยน governor เท่านั้น [Linux Kernel Documentation, n.d.]:
+
+[TABLE: 1x1]
+echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+[END TABLE]
+
+[P:Normal] ข. การขจัดสัญญาณรบกวนจากเบื้องหลัง (Background Noise Elimination):
+[P:Normal] ลดบริการเบื้องหลังที่ไม่เกี่ยวกับการทดสอบและบันทึกโหลดของระบบระหว่างรัน การลดบริการไม่ทำให้เครื่องปลอด noise ทั้งหมด เพราะยังมี interrupts, kernel work และงานระบบอื่น ต้องประเมินความแปรปรวนและ systematic effects ร่วมกัน
+[P:Normal] ค. การกำหนดคอร์เฉพาะเจาะจง (Core Pinning / Thread Affinity):
+[P:Normal] ขอบเขตการวิเคราะห์ใช้ P-core 6 คอร์ของ i7-12700H ซึ่งรองรับ 12 logical processors เมื่อเปิด SMT การยืนยันการทดสอบภายในขอบเขตนี้ต้องบันทึก CPU IDs/topology, affinity mask และคำสั่ง taskset หรือการตั้ง pthread_setaffinity_np ของทุก worker ไม่ใช้ CPU IDs ที่คาดเดาจากลำดับหมายเลข ทั้งเครื่องยังมี 14 คอร์และ 20 logical processors
+[P:Normal] ง. การอุ่นแคชล่วงหน้า (Cache Warm-up Iterations):
+[P:Normal] ทำ warm-up ของ workload และข้อมูลชุดเดียวกันก่อนรอบที่จับเวลา แล้วกำหนดค่าเริ่มต้นของผลลัพธ์ใหม่ทุกครั้ง การทดลองต้องแยก warm-up ออกจาก 10 measured runs และบันทึกสคริปต์ควบคุม การรันงานขนาดเล็กเพียงสองรอบไม่รับประกันว่า page faults หรือ working set ของงานเต็มถูกอุ่นครบ
+[P:Normal] 4. เครื่องมือวัดผลระดับฮาร์ดแวร์ (Hardware Performance Profiling via Linux `perf`)
+[P:Normal] รายงานฉบับนี้ก้าวข้ามการวัดผลแบบดั้งเดิมที่จับเพียงเวลานาฬิกาแขวนผนัง (Wall-Clock Time) โดยได้นำเครื่องมือวิเคราะห์เชิงลึกระดับเคอร์เนล Linux `perf` subsystem เข้ามาตรวจจับค่าทางสถิติจากหน่วยตรวจสอบประสิทธิภาพของฮาร์ดแวร์ (Hardware Performance Monitoring Unit: PMU) โดยตรง [Love, 2010]:
+[P:Normal] ตัวชี้วัดสำคัญที่ทำการดึงค่าจากฮาร์ดแวร์จริง:
+[P:Normal] 1. Wall-Clock Execution Time (วินาที): เวลาที่ผู้ใช้สังเกตเห็นจริงนับตั้งแต่เริ่มต้นจนสิ้นสุดฟังก์ชัน โดยใช้ฟังก์ชันความแม่นยำสูง clock_gettime(CLOCK_MONOTONIC)
+[P:Normal] LLC Misses: บันทึก event names และความหมายตาม PMU ของเครื่อง cache-misses และ LLC-load-misses ไม่จำเป็นต้องนับ operation แบบเดียวกัน การ miss ที่ LLC อาจมีเส้นทางรับข้อมูลอื่นตามสถาปัตยกรรม ไม่ได้พิสูจน์ว่าทุก miss อ่าน DRAM โดยตรง
+[P:Normal] 3. Instructions Per Cycle (IPC): อัตราส่วนระหว่างจำนวนคำสั่งที่ประมวลผลเสร็จสิ้น (Instructions Retired) ต่อจำนวนรอบสัญญาณนาฬิกา (CPU Cycles) เพื่อสะท้อนถึงประสิทธิภาพการไหลของคำสั่งใน Pipeline
+[P:Normal] Context Switches: เก็บข้อมูลของทุก worker และระบุวิธีรวม ตัวเลขจาก /proc/[pid]/status เป็นของ task ที่อ้างถึง ไม่ใช่ผลรวมทุกเธรดโดยอัตโนมัติ หากใช้ /proc/[pid]/task/[tid]/status ต้องเก็บก่อน task สิ้นสุด หรือใช้เครื่องมือที่ติดตามตลอดช่วงรัน
+[P:Normal] Voluntary Context Switches:* จำนวนครั้งที่เธรดสละซีพียูด้วยความสมัครใจ (เช่น รอ I/O หรือติด Mutex)
+[P:Normal] Involuntary Context Switches: จำนวนครั้งที่ task ถูก scheduler สลับออกโดยไม่ได้เข้าสู่การรอแบบสมัครใจ เช่น preemption ไม่จำเป็นต้องเกิดจากการหมด time slice เพียงอย่างเดียว
+[P:Normal] 5. ระเบียบวิธีทางสถิติ (Statistical Rigor):
+[P:Normal] แต่ละเงื่อนไข 1, 2, 4, 6, 8, 12 และ 16 เธรดมีข้อมูลดิบ 10 รอบ การวิเคราะห์ใช้ sample mean และ sample standard deviation s (ตัวหาร N − 1) ช่วงความเชื่อมั่นของค่าเฉลี่ยคำนวณด้วย Student t เมื่อสมมติรอบทดลองเป็นอิสระและข้อมูลใกล้ปกติ ที่ N = 10 ใช้ t₀.₉₇₅,₉ ≈ 2.262 ตามสมการ 6.1 [NIST, n.d.]
+[P:Normal] CV = 100s/ค่าเฉลี่ย แสดงความกระจายสัมพัทธ์ของข้อมูล การมี CV ต่ำช่วยบอกว่าเวลาที่วัดกระจายไม่มาก แต่ไม่รับรองว่าไม่มี noise หรือ systematic bias ควรตรวจทั้งวิธีทดลองและการกระจายของข้อมูล [Mytkowicz et al., 2009]
+[P:Heading 2] 6.4 ผลการทดลองและการนำเสนอข้อมูลเชิงประจักษ์ (Empirical Benchmark Results)
+[P:Normal] การทดลองที่ 1: การประเมินประสิทธิภาพงานประเภท CPU-Bound (Matrix Multiplication 1024 × 1024)
+[P:Normal] ตาราง 6.2 คำนวณสถิติและ speedup จากข้อมูลดิบ 10 รอบในตาราง ข.1 โดยใช้วิธีเดียวกันทุกเงื่อนไข ค่าของ Amdahl ใช้ serial fraction 5% เป็นเส้นอ้างอิงสมมติ ไม่ใช่ serial fraction ที่ยืนยันจากการวัดโดยตรง:
+[P:Normal] ตารางที่ 6.2: ผลการทดลองวัดระยะเวลาและ Speedup ของงาน CPU-Bound (N=10 รอบ)
+
+[TABLE: 8x6]
+จำนวนเธรด (Threads) | ค่าเฉลี่ย (วินาที) | Sample SD s | 95% t CI | Actual Speedup | Amdahl (S = 5%)
+1 Thread (Baseline) | 3.2840 s | 0.015592 | [3.272846, 3.295154] | 1.00x | 1.00x
+2 Threads | 1.6820 s | 0.007916 | [1.676337, 1.687663] | 1.95x | 1.90x
+4 Threads | 0.8650 s | 0.005333 | [0.861185, 0.868815] | 3.80x | 3.48x
+6 Threads (P-cores 6 คอร์) | 0.5980 s | 0.004989 | [0.594431, 0.601569] | 5.49x | 4.80x
+8 Threads (ใช้ SMT ภายใน P-core) | 0.5210 s | 0.005676 | [0.516939, 0.525061] | 6.30x | 5.93x
+12 Threads (12 P-core logical CPUs) | 0.4850 s | 0.005754 | [0.480884, 0.489116] | 6.77x | 7.74x
+16 Threads (เกิน P-core CPU set หากตรึงจริง) | 0.5132 s | 0.008311 | [0.507255, 0.519145] | 6.40x | 9.14x
+[END TABLE]
+
+[P:Normal] การสังเกตเบื้องต้นจากข้อมูลในตาราง:
+[P:Normal] 1. ข้อมูลช่วง 1–6 เธรดให้ speedup เพิ่มขึ้นใกล้เชิงเส้น โดยที่ 6 เธรดได้ประมาณ 5.49 เท่า การจับคู่กับ P-core ต้องตรวจ affinity/topology ของการรันจริง
+[P:Normal] 2. ที่ 8 และ 12 เธรด speedup ยังเพิ่มขึ้น หากใช้เฉพาะ 6 P-core เธรดเหล่านี้ใช้ hardware contexts ของ SMT ร่วมกัน ค่าต่ำสุดในเงื่อนไขที่ทดสอบอยู่ที่ 12 เธรด 0.485 วินาที เร็วกว่า 6 เธรดประมาณ 23.3% เมื่อเทียบอัตราเร็ว
+[P:Normal] 3. ที่ 16 เธรดเวลาเฉลี่ยเพิ่มเป็น 0.5132 วินาที ช้ากว่า 12 เธรด หากตรึงงานไว้ที่ 12 logical CPUs ของ P-core จะเป็น over-subscription ภายใน CPU set นั้น แต่ 16 เธรดไม่เกิน 20 logical processors ทั้งเครื่อง ควรใช้หลักฐาน affinity ประกอบก่อนระบุสาเหตุ
+
+[TABLE: 1x1]
+จำนวนเธรด     1      2      4      6      8     12     16 Actual       1.00   1.95   3.80   5.49   6.30   6.77   6.40 Amdahl 5%    1.00   1.90   3.48   4.80   5.93   7.74   9.14 USL*         1.00   1.94   3.61   4.95   5.96   7.17   7.60 * α=0.024, β=0.0031 ยังไม่ fit การลดลงที่ 16 เธรด
+[END TABLE]
+
+[P:Normal] รูปที่ 6.2 ตารางสรุป Speedup จากข้อมูลและค่าของแบบจำลองอ้างอิง
+[P:Normal] การวิเคราะห์ผลการทดลองเปรียบเทียบกับแบบจำลองคณิตศาสตร์:
+[P:Normal] เมื่อนำข้อมูลจากการทดลองจริงไปเปรียบเทียบกับแบบจำลองทางคณิตศาสตร์ในบทที่ 4:
+[P:Normal] เส้นอ้างอิง Amdahl ที่ S = 5% ให้ค่าต่างจากผลจริงบางช่วง เช่น 4 เธรดได้ 3.48 เทียบกับผลจริง 3.80 จึงยังไม่ใช่หลักฐานว่า serial fraction จริงเท่ากับ 5% การประเมินความเหมาะสมต้องแสดงวิธีประมาณพารามิเตอร์และความคลาดเคลื่อน โดยคำนึงถึง SMT และ overhead
+[P:Normal] พารามิเตอร์ USL α = 0.024 และ β = 0.0031 ให้ C(12) ≈ 7.1719, C(16) ≈ 7.6046 และ N* ≈ 17.74 แบบจำลองชุดนี้ยังเพิ่มจาก 12 ไป 16 จึงไม่สอดคล้องกับการลดลงในข้อมูลจริง ต้องประมาณพารามิเตอร์ใหม่พร้อมรายงานวิธี fit และ residuals ก่อนอ้างว่า USL ทำนายผลอย่างแม่นยำ ค่า β เป็นบวกอย่างเดียวไม่พิสูจน์สาเหตุจาก cache coherence [Gunther, 2007]
+[P:Normal] การทดลองที่ 2: การประเมินประสิทธิภาพงานประเภท I/O-Bound (Random File I/O Simulation)
+[P:Normal] ตาราง 6.3 แสดงข้อมูล throughput และ latency สำหรับ I/O workload ที่รายงาน การทำซ้ำต้องระบุ 4 KiB operations ทั้งหมด 10,000 ครั้ง รูปแบบไฟล์ อุปกรณ์ ระบบไฟล์ page-cache policy, outstanding operations และช่วงจับเวลาให้ชัด:
+[P:Normal] ตารางที่ 6.3: ผลการทดลองวัดประสิทธิภาพของงาน I/O-Bound
+
+[TABLE: 8x4]
+จำนวนเธรด (Threads) | Throughput (IOPS) | Latency เฉลี่ย (ms) | การใช้งาน CPU รวม (%)
+1 Thread | 1,240 IOPS | 0.806 ms | 4.2% (I/O Wait สูง)
+2 Threads | 2,410 IOPS | 0.829 ms | 7.8%
+4 Threads | 4,680 IOPS | 0.854 ms | 14.5%
+8 Threads | 8,920 IOPS | 0.896 ms | 28.1%
+16 Threads | 14,250 IOPS | 1.122 ms | 48.6%
+32 Threads | 18,100 IOPS | 1.767 ms | 68.2%
+64 Threads | 19,400 IOPS | 3.298 ms | 74.5% (I/O Saturation)
+[END TABLE]
+
+[P:Normal] การวิเคราะห์เปรียบเทียบเชิงสถาปัตยกรรม (CPU-Bound vs. I/O-Bound):
+[P:Normal] จากผลการทดลองทั้งสองชุด ชี้ให้เห็นความแตกต่างที่ลึกซึ้งทางวิศวกรรมระบบ [Silberschatz et al., 2018]:
+[P:Normal] 1. CPU-bound: จำนวน worker ที่เหมาะสมขึ้นกับ workload, SMT, memory bandwidth และ CPU set ที่อนุญาตให้ใช้ เริ่มประเมินจากจำนวนคอร์กายภาพและทดลองเพิ่มตาม hardware contexts ข้อมูลชุดนี้ให้เวลาต่ำสุดที่ 12 เธรด จึงไม่รองรับกฎว่าเกิน 6 P-core แล้วไม่มีประโยชน์
+[P:Normal] 2. ในงาน I/O-Bound: จำนวนเธรดสามารถ ขยายตัวเกินจำนวนคอร์ทางกายภาพได้หลายเท่าตัว (N_threads ≫ N_cores) เพราะเธรดส่วนใหญ่ใช้เวลาไปกับการนอนหลับรอคอยฮาร์ดแวร์ I/O (I/O Wait State) การมีเธรดจำนวนมากช่วยให้เคอร์เนลสามารถสลับเธรดอื่นที่พร้อมขึ้นมาประมวลผลคั่นเวลา ส่งผลให้ Throughput เพิ่มสูงขึ้นจาก 1,240 IOPS เป็น 19,400 IOPS (เพิ่มขึ้นกว่า 15 เท่า) แม้ว่าจะต้องแลกมาด้วย Latency ต่อคำขอที่เพิ่มขึ้นบ้างก็ตาม [Anderson et al., 1992]
+[P:Normal] การวิเคราะห์ฮาร์ดแวร์เคาน์เตอร์เชิงลึกด้วย Linux `perf`
+[P:Normal] ตัวชี้วัดในตาราง 6.4 ใช้ประกอบการศึกษาว่าเหตุใดเวลาเพิ่มที่ 16 เธรด ต้องระบุ event names, measurement scope, worker aggregation และ counter multiplexing ก่อนตีความเชิงสาเหตุ:
+[P:Normal] ตารางที่ 6.4: การวิเคราะห์ Hardware Performance Counters จากคำสั่ง `perf stat`
+
+[TABLE: 6x4]
+จำนวนเธรด | Last-Level Cache Misses | Instructions Per Cycle (IPC) | Involuntary Context Switches
+1 Thread | 142,500 misses | 2.42 IPC | 12 ครั้ง
+4 Threads | 589,200 misses | 2.38 IPC | 48 ครั้ง
+8 Threads | 1,420,100 misses | 1.89 IPC | 185 ครั้ง
+12 Threads | 2,850,400 misses | 1.52 IPC | 890 ครั้ง
+16 Threads | 5,940,800 misses | 1.14 IPC | 4,210 ครั้ง
+[END TABLE]
+
+[P:Normal] การวินิจฉัยเชิงวิศวกรรม (Engineering Diagnosis):
+[P:Normal] ข้อมูล counters ที่รายงานสอดคล้องกับสมมติฐานว่ามี overhead เพิ่มขึ้น แต่ต้องแยกการสังเกตออกจากการพิสูจน์สาเหตุ:
+[P:Normal] 1. Involuntary Context Switches เพิ่มจาก 12 เป็น 4,210 ครั้ง: อาจสอดคล้องกับ preemption และการแข่งขันใช้ CPU หากจำกัด worker ไว้บน 12 P-core logical CPUs แต่ยังต้องตรวจ affinity และกิจกรรมอื่นของระบบก่อนสรุปว่าเป็น over-subscription
+[P:Normal] 2. LLC misses เพิ่มจาก 142,500 เป็น 5,940,800 ครั้ง: บ่งชี้ว่าพฤติกรรมแคชเปลี่ยน แต่ยังไม่แยก capacity/conflict/coherence misses การยืนยัน cache thrashing ควรมีการทดลองควบคุมและตัวชี้วัดที่ตรงสาเหตุ ไม่ใช่ใช้จำนวน miss อย่างเดียว
+[P:Normal] 3. IPC ลดจาก 2.42 เป็น 1.14: แสดงว่าจำนวน instructions ต่อ cycles ลด แต่ไม่พิสูจน์ว่า pipeline ว่างหรือรอ RAM ทั้งหมด ต้องใช้ stall events, bandwidth หรือข้อมูล profiling เพิ่มเพื่อแยกสาเหตุ
+[P:Heading 2] 6.5 การวิเคราะห์ความสัมพันธ์ระหว่าง Synchronization Contention และ Throughput
+[P:Normal] ตาราง 6.5 แสดงเวลาการอัปเดต shared counter ที่รายงานภายใต้ Mutex, Spinlock และ Atomic CAS สำหรับการทำซ้ำต้องระบุว่า 10⁷ updates เป็นยอดรวมทั้งระบบหรือจำนวนต่อเธรด วิธีแบ่งงาน ค่า counter สุดท้าย และโค้ด/คำสั่งรันของแต่ละ implementation
+[P:Normal] ตารางที่ 6.5: ผลการทดลองเปรียบเทียบเวลาทำงานในการแย่งชิงตัวแปรนับ (หน่วย: วินาที)
+
+[TABLE: 6x4]
+จำนวนเธรด | Pthread Mutex | Pthread Spinlock | GCC Atomic CAS (Lock-Free)
+1 Thread (No Contention) | 0.042 s | 0.028 s | 0.012 s
+2 Threads | 0.185 s | 0.142 s | 0.045 s
+4 Threads | 0.495 s | 0.612 s | 0.128 s
+8 Threads | 1.120 s | 1.850 s | 0.340 s
+16 Threads (High Contention) | 2.450 s | 5.820 s | 0.780 s
+[END TABLE]
+
+[P:Normal] ข้อค้นพบที่สำคัญยิ่งจากการทดลอง:
+[P:Normal] 1. ข้อจำกัดด้านประสิทธิภาพของ Spinlock เมื่อเกิดภาวะการแย่งชิงสูง (High Contention): ในช่วงที่จำนวนเธรดต่ำ (1–2 เธรด) Spinlock ใช้เวลาประมวลผลน้อยกว่า Mutex แต่เมื่อจำนวนเธรดเพิ่มขึ้นเป็น 8 และ 16 เธรด เวลาการทำงานของ Spinlock เพิ่มขึ้นอย่างรวดเร็วจนถึง 5.82 วินาที (สูงกว่า Mutex กว่า 2.37 เท่า) เนื่องจากเกิดการวนตรวจสอบแบบ Busy Waiting ซ้ำซ้อนข้ามคอร์ ก่อให้เกิดความคับคั่งบนบัสข้อมูลระบบ (Bus Traffic) และการส่งสัญญาณ Cache Invalidation อย่างต่อเนื่อง [Love, 2010]
+[P:Normal] 2. ในข้อมูลชุดนี้ Atomic CAS ใช้เวลาน้อยกว่า Mutex และ Spinlock ทุกจำนวนที่ทดสอบ แต่ไม่ใช่การรับประกันทั่วไปว่า lock-free เร็วที่สุด การแย่งชิง cache line, จำนวน CAS retries, memory ordering และ atomic support อาจเปลี่ยนผลได้ ต้องใช้โค้ดที่ไม่มี data race และตรวจค่าตัวนับก่อนรับผลเวลา [Herlihy, 1991]
+[P:Normal] บทสรุปการทดลองเชิงประจักษ์และการสังเคราะห์ภาพรวม (Empirical Synthesis)
+[P:Normal] ข้อมูลเชิงทดลองในบทนี้ให้ข้อสังเกตสำหรับ workload และสภาพแวดล้อมที่ระบุ โดยมีข้อจำกัดเรื่องการยืนยันเงื่อนไขการรันและการทำซ้ำดังต่อไปนี้:
+[P:Normal] 1. ขีดจำกัดความเร็วของมัลติเธรดไม่ได้ขึ้นอยู่กับซีพียูเพียงอย่างเดียว แต่ถูกจำกัดโดยโครงสร้างลำดับชั้นแคช, อัตราการเกิด Cache Thrashing, และอัตราการแย่งชิง Memory Bus
+[P:Normal] 2. จำนวนเธรดมีจุดเหมาะสมตาม workload และ CPU set ข้อมูลชุดนี้เร็วที่สุดที่ 12 เธรด และช้าลงเมื่อเพิ่มเป็น 16 ไม่ควรขยายเป็นข้อสรุปว่าเหมาะที่สุดที่จำนวนคอร์กายภาพสำหรับงานทุกชนิด
+[P:Normal] 3. การประสานเวลาอาจเป็นคอขวดสำคัญ การเลือก mutex, spinlock หรือ atomic operation ต้องพิจารณา critical-section length, contention และความถูกต้องของ memory access การลดการแชร์ข้อมูลมักเป็นแนวทางที่ควรประเมินก่อน [Drepper, 2007]
+[P:Normal] อย่างไรก็ดี นอกเหนือจากปัญหาเรื่องประสิทธิภาพและการประสานเวลาแล้ว การจัดการเธรดในระบบปฏิบัติการจริงยังมีมิติทางวิศวกรรมที่ซับซ้อนยิ่งกว่านั้น เช่น พฤติกรรมเมื่อเธรดเรียกใช้ซิสเต็มคอล fork() ร่วมกับ exec(), การยกเลิกเธรดระหว่างทำงาน (Cancellation), และการกระจายสัญญาณ (Signal Handling) ประเด็นเชิงลึกเหล่านี้จะได้รับการแจกแจงใน บทที่ 7: กลไกขั้นสูงในการจัดการเธรดระดับระบบปฏิบัติการ ต่อไป
+
+
+==================== บทที่ 7: ====================
+
+[P:Heading 1] บทที่ 7: กลไกขั้นสูงในการจัดการเธรดระดับระบบปฏิบัติการ (Advanced Threading Mechanics)
+[P:Heading 2] 7.1 พฤติกรรมของ System Call `fork()` และ `exec()` ในระบบมัลติเธรด
+[P:Normal] ในระบบปฏิบัติการตระกูล UNIX และ Linux ความสัมพันธ์ระหว่างซิสเต็มคอลดั้งเดิมอย่าง fork() และ exec() กับสถาปัตยกรรมมัลติเธรด เป็นหนึ่งในประเด็นที่ก่อให้เกิดความสับสนและข้อผิดพลาดร้ายแรงที่สุดในเชิงวิศวกรรมระบบ [Love, 2010]
+[P:Normal] คำถามทางสถาปัตยกรรม:
+[P:Normal] > “หากโพรเซสหนึ่งมี 10 เธรดทำงานอยู่พร้อมกัน แล้วมีเธรดหนึ่งเรียกใช้คำสั่ง `fork()` โพรเซสลูก (Child Process) ที่กำเนิดขึ้นมาใหม่ ควรจะมีเธรดกี่ตัว?”
+[P:Normal] 1. ข้อกำหนดตามมาตรฐาน POSIX (POSIX Specification & Modern Linux):
+[P:Normal] ในอดีต ระบบปฏิบัติการรุ่นเก่าบางตัว (เช่น Solaris ยุคแรก) เคยพยายามนำเสนอสองทางเลือก ได้แก่ forkall() (คัดลอกทุกเธรดตามไปด้วย) และ fork1() (คัดลอกเฉพาะเธรดที่เรียก) อย่างไรก็ตาม ในมาตรฐานสากล POSIX.1c (IEEE Std 1003.1) และระบบปฏิบัติการ Linux สมัยใหม่ทั้งหมด ได้ตัดสินใจอย่างเด็ดขาดว่า [IEEE, 1995]:
+[P:Normal] > “เมื่อเธรดใดเธรดหนึ่งในโพรเซสแบบมัลติเธรดเรียกใช้ `fork()` โพรเซสลูกที่ถูกสร้างขึ้นมาจะมีเพียง 'เธรดเดียวเท่านั้น' (Single-threaded Child) คือเธรดที่ทำหน้าที่เรียกคำสั่ง `fork()` ส่วนเธรดอื่นที่เหลือทั้งหมดจะสูญสลายหายไป ไม่ถูกคัดลอกมายังโพรเซสลูก”
+[P:Normal] อันตรายระดับวิกฤติ: ภาวะ Deadlock ในโพรเซสลูก (The Fork-Safety Hazard)
+[P:Normal] ผลสืบเนื่องจากกฎของ POSIX ข้อนี้ก่อให้เกิดปัญหาความปลอดภัยร้ายแรง หากในขณะที่เธรด A กำลังเรียก fork() อยู่นั้น เธรด B (ซึ่งกำลังทำงานอยู่บนอีกคอร์หนึ่ง) ได้เข้าถือครอง Mutex Lock ของหน่วยความจำส่วนกลางอยู่ เมื่อเคอร์เนลสร้างโพรเซสลูกขึ้นมา:
+[P:Normal] โพรเซสลูกจะได้รับสำเนาหน่วยความจำของโพรเซสแม่มาทั้งหมด รวมถึงสถานะของ Mutex Lock ตัวนั้นซึ่งยังคงอยู่ในสถานะ "Locked"*
+[P:Normal] แต่โพรเซสลูกกลับ "ไม่มีเธรด B ติดตามมาด้วย!"*
+[P:Normal] ผลลัพธ์คือ: Mutex ในโพรเซสลูกจะอยู่ในสถานะถูกล็อกค้างไว้ตลอดกาล โดยไม่มีเธรดใดในโลกที่มีสิทธิ์ปลดล็อกได้ หากเธรดเดี่ยวในโพรเซสลูกพยายามเข้าขอล็อกนี้ โพรเซสลูกจะเกิดภาวะ Deadlock ถาวรในทันที* [Butenhof, 1997]
+[P:Normal] แนวทางแก้ไขทางวิศวกรรม: กลไก `pthread_atfork()`
+[P:Normal] เพื่อแก้ไขปัญหา Mutex Deadlock จากการ fork() มาตรฐาน POSIX ได้กำหนดฟังก์ชันการลงทะเบียนจุดตรวจจับล่วงหน้า เรียกว่า pthread_atfork() [IEEE, 1995]:
+
+[TABLE: 1x1]
+int pthread_atfork(void (*prepare)(void), void (*parent)(void), void (*child)(void));
+[END TABLE]
+
+[P:Normal] ฟังก์ชันนี้ทำงานโดยกำหนดจุดเชื่อมต่อ (Hooks) 3 ขั้นตอน [Butenhof, 1997]:
+[P:Normal] 1. prepare handler ทำงานก่อน fork ผู้พัฒนาอาจใช้เพื่อประสานล็อกที่โปรแกรมควบคุมได้ แต่ฟังก์ชันนี้ไม่ได้รู้จักหรือเข้าล็อก mutex ทุกตัวในระบบโดยอัตโนมัติ
+[P:Normal] 2. parent handler ทำงานใน parent หลัง fork เพื่อคืนสถานะของล็อกหรือทรัพยากรที่ prepare จัดไว้ ตามโค้ดที่ลงทะเบียน
+[P:Normal] 3. child handler ทำงานใน child หลัง fork แต่ไม่ได้รับประกันการรีเซ็ตล็อกทุกไลบรารีให้ปลอดภัย การจัดการล็อกของไลบรารีภายนอกทำได้ยาก หลัง fork ของ multithreaded process ใน child ควรใช้เฉพาะ async-signal-safe functions จนเรียก execve [IEEE, 2017; Linux man-pages, n.d.]
+[P:Normal] พฤติกรรมเมื่อเรียกใช้คำสั่ง `exec()`:
+[P:Normal] ตรงกันข้ามกับ fork() เมื่อเธรดใดเธรดหนึ่งในโพรเซสเรียกใช้กลุ่มฟังก์ชัน exec() (เช่น execve()):
+[P:Normal] เคอร์เนลจะทำการ "ทำลายล้าง Address Space เดิมทิ้งทั้งหมด"* และโหลดโปรแกรมไบนารีตัวใหม่เข้ามาแทนที่ในหน่วยความจำ
+[P:Normal] * เธรดอื่นทั้งหมดในโพรเซสเดิมจะถูกเคอร์เนลยุติการทำงานและทำลายทิ้งทันที โดยไม่มีการเรียก Cleanup Handlers ใดๆ
+[P:Normal] เมื่อ exec สำเร็จ process image ถูกแทนที่โดยยังใช้ PID เดิมและเริ่มด้วยเธรดเดียวในโปรแกรมใหม่ การเริ่มโปรแกรมผ่าน runtime startup ไม่ใช่เคอร์เนลกระโดดเข้า main โดยตรง หาก exec ล้มเหลวโปรแกรมเดิมยังทำงานต่อและต้องจัดการ error [IEEE, 2017]
+[P:Heading 2] 7.2 การยกเลิกเธรด (Thread Cancellation)
+[P:Normal] การยกเลิกเธรด (Thread Cancellation) คือกลไกที่เธรดหนึ่งส่งสัญญาณคำสั่งเพื่อสั่งยุติการทำงานของเธรดเป้าหมาย (Target Thread) ก่อนที่เธรดเป้าหมายนั้นจะทำงานจบฟังก์ชัน ตัวอย่างเช่น เมื่อผู้ใช้คลิกปุ่ม "ยกเลิก" การดาวน์โหลดไฟล์ หรือเมื่ออัลกอริทึมค้นหาแบบขนาน (Parallel Search) มีเธรดหนึ่งค้นพบคำตอบแล้ว จึงต้องการสั่งหยุดเธรดที่เหลือทั้งหมด [Silberschatz et al., 2018]
+[P:Normal] มาตรฐาน POSIX Threads กำหนดรูปแบบการยกเลิกไว้ 2 รูปแบบที่มีความเสี่ยงทางวิศวกรรมแตกต่างกันอย่างสิ้นเชิง [Butenhof, 1997]:
+[P:Normal] 1. การยกเลิกแบบอะซิงโครนัส (Asynchronous Cancellation):
+[P:Normal] ในโหมดนี้ เมื่อเธรดเป้าหมายได้รับสัญญาณยกเลิก ระบบปฏิบัติการจะสั่ง "ตัดจบและทำลายเธรดเป้าหมายทิ้งในเสี้ยววินาทีนั้นทันที" โดยไม่สนใจว่าเธรดกำลังประมวลผลคำสั่งใดอยู่
+[P:Normal] Asynchronous cancellation เสี่ยงต่อข้อมูลและทรัพยากรหากยกเลิกระหว่างถือ lock หรือทำงานในฟังก์ชันที่ไม่ async-cancel-safe ควรหลีกเลี่ยงหากไม่สามารถพิสูจน์ความปลอดภัยของเส้นทางโค้ดได้ ไม่ใช่ข้อห้ามมาตรฐานสำหรับทุกซอฟต์แวร์องค์กร [Butenhof, 1997]
+[P:Normal] 2. การยกเลิกแบบหน่วงเวลา (Deferred Cancellation - รูปแบบมาตรฐาน):
+[P:Normal] Deferred cancellation ตั้งคำขอ pending จนถึง cancellation point เมื่อเปิด cancellation จึงควบคุมการยุติได้ง่ายกว่าแบบ asynchronous แต่ยังต้องใช้ cleanup handlers และรักษา invariants เอง ไม่ได้ปลอดภัยโดยอัตโนมัติ [Butenhof, 1997]
+[P:Normal] * จุด Cancellation Points ตามมาตรฐาน POSIX ได้แก่ ฟังก์ชันบล็อกกิ้งระดับระบบ เช่น read(), write(), open(), sleep(), หรือการสั่งตรวจสอบด้วยตนเองผ่านฟังก์ชัน pthread_testcancel() โหมดนี้เปิดโอกาสให้โปรแกรมเมอร์มั่นใจได้ว่าข้อมูลจะไม่เสียหายก่อนถูกยกเลิก [IEEE, 1995]
+[P:Normal] กลไกตัวจัดการทำความสะอาดทรัพยากร (Thread Cleanup Handlers)
+[P:Normal] เพื่อแก้ไขปัญหา Resource Leak เมื่อเธรดถูกยกเลิกแบบ Deferred มาตรฐาน POSIX ได้ออกแบบกลไก "ตัวจัดการทำความสะอาด" (Cleanup Handlers) ซึ่งทำงานในลักษณะสแตก (LIFO Stack) ผ่านคู่ฟังก์ชัน [Butenhof, 1997]:
+
+[TABLE: 1x1]
+pthread_cleanup_push(void (*routine)(void *), void *arg); pthread_cleanup_pop(int execute);
+[END TABLE]
+
+[P:Normal] หลักการทำงาน:
+[P:Normal] เมื่อเธรดได้รับการจัดสรรทรัพยากรสำคัญ (เช่น จองหน่วยความจำหรือเข้ายึด Mutex) เธรดจะทำการลงทะเบียนฟังก์ชันทำความสะอาดไว้บนสแตกด้วย pthread_cleanup_push() หากเธรดถูกสั่งยกเลิก (Cancelled) ณ จุด Cancellation Point ใดๆ ระบบปฏิบัติการจะดำเนินการดึงฟังก์ชันทำความสะอาดออกจากสแตกมาประมวลผลโดยอัตโนมัติ เพื่อสั่งปลดล็อก Mutex และคืนพื้นที่หน่วยความจำทิ้งอย่างปลอดภัย ก่อนที่เธรดจะสิ้นสุดสภาพลงอย่างสมบูรณ์ [IEEE, 1995]
+[P:Normal] ตัวอย่างการประยุกต์ใช้เพื่อความปลอดภัย:
+
+[TABLE: 1x1]
+void unlock_mutex(void *arg) {     pthread_mutex_unlock((pthread_mutex_t *)arg); }  void* worker(void* arg) {     pthread_mutex_lock(&lock);     pthread_cleanup_push(unlock_mutex, (void *)&lock); // บันทึก Handler      while (1) {         // ประมวลผลคำสั่ง...         pthread_testcancel(); // จุดตรวจสอบ: หากถูกยกเลิก จะเรียก unlock_mutex อัตโนมัติ     }      pthread_cleanup_pop(1); // นำออกจากสแตกและสั่งรันปกติเมื่อจบ     return NULL; }
+[END TABLE]
+
+[P:Normal] ตัวอย่างนี้ปลด mutex ผ่าน cleanup handler เมื่อ deferred cancellation เกิดที่ pthread_testcancel ภายใต้สมมติฐานว่า lock สำเร็จและไม่มีเส้นทางที่ข้ามการลงทะเบียน handler ไม่ใช่การรับประกันสำหรับ asynchronous cancellation ทุกกรณี
+[P:Heading 2] 7.3 การจัดการสัญญาณในระบบมัลติเธรด (Signal Handling in Multithreaded Systems)
+[P:Normal] สัญญาณ (Signals) คือกลไกการแจ้งเตือนเหตุการณ์แบบอะซิงโครนัสในระบบปฏิบัติการตระกูล UNIX (เช่น สัญญาณการละเมิดหน่วยความจำ SIGSEGV, สัญญาณการหารด้วยศูนย์ SIGFPE, หรือสัญญาณขัดจังหวะจากผู้ใช้ SIGINT) ในสถาปัตยกรรมโพรเซสเดี่ยว การจัดการสัญญาณเป็นเรื่องตรงไปตรงมา แต่เมื่อระบบมีหลายเธรดทำงานพร้อมกัน จะเกิดคำถามทางสถาปัตยกรรมว่า:
+[P:Normal] > “เมื่อสัญญาณถูกส่งเข้ามายังโพรเซส ระบบปฏิบัติการควรส่งสัญญาณนั้นไปให้เธรดตัวใดเป็นผู้จัดการ?” [Love, 2010]
+[P:Normal] ระบบปฏิบัติการสมัยใหม่จำแนกการส่งสัญญาณออกเป็น 2 รูปแบบตามแหล่งกำเนิด [Silberschatz et al., 2018]:
+[P:Normal] 1. สัญญาณแบบซิงโครนัส (Synchronous Signals):
+[P:Normal] เป็นสัญญาณที่เกิดขึ้นจากการกระทำโดยตรงของคำสั่งภายในเธรดนั้นๆ เช่น การเข้าถึงหน่วยความจำที่ผิดกฎหมาย (SIGSEGV) หรือการหารตัวเลขด้วยศูนย์ (SIGFPE)
+[P:Normal] กฎการส่ง: เคอร์เนลจะดำเนินการ "ส่งสัญญาณตรงไปยังเธรดที่เป็นผู้ก่อให้เกิดข้อผิดพลาดนั้นแต่เพียงผู้เดียว"* (Delivered to the causing thread) และเธรดนั้นจะต้องเป็นผู้จัดการ [Love, 2010]
+[P:Normal] 2. สัญญาณแบบอะซิงโครนัส (Asynchronous Signals):
+[P:Normal] เป็นสัญญาณที่ถูกสร้างขึ้นจากเหตุการณ์ภายนอกโพรเซส เช่น ผู้ใช้กดปุ่ม Ctrl+C บนคีย์บอร์ด (SIGINT), สัญญาณจับเวลา (SIGALRM), หรือสัญญาณสั่งยุติการทำงานจากภายนอก (SIGTERM)
+[P:Normal] Linux แยก process-directed และ thread-directed signals สำหรับสัญญาณระดับโพรเซส เคอร์เนลส่งให้หนึ่งเธรดที่รับสัญญาณนั้นได้ หากมีหลายเธรดไม่บล็อก สัญญาณอาจไปยังเธรดใดเธรดหนึ่ง ไม่ broadcast สัญญาณหนึ่งครั้งให้ทุกเธรด ส่วน thread-directed signals ส่งให้เธรดเป้าหมาย [Linux man-pages, n.d.]
+[P:Normal] แนวทางปฏิบัติทางวิศวกรรม: การใช้ Dedicated Signal Handling Thread
+[P:Normal] ในทางวิศวกรรมซอฟต์แวร์ระบบ การปล่อยให้สัญญาณอะซิงโครนัสกระโดดไปขัดจังหวะเธรดทำงานใดๆ แบบสุ่ม ก่อให้เกิดความเสี่ยงสูงมากเรื่อง Race Condition และ Reentrancy Bugs (ฟังก์ชันจัดการสัญญาณจำนวนมากไม่ปลอดภัยสำหรับการทำงานแบบ Concurrency หรือ Non-reentrant) [Love, 2010]
+[P:Normal] มาตรฐาน POSIX จึงแนะนำแนวทางปฏิบัติที่ดีที่สุด (Best Practice) ด้วยการใช้สถาปัตยกรรม "เธรดจัดการสัญญาณเฉพาะกิจ" (Dedicated Signal Handling Thread) [Butenhof, 1997]:
+[P:Normal] 1. บล็อกชุดสัญญาณที่ต้องการให้ sigwait thread จัดการตั้งแต่ก่อนสร้าง worker ด้วย pthread_sigmask เพื่อให้ mask สืบทอดไปยัง worker ทั้งนี้ SIGKILL และ SIGSTOP บล็อกไม่ได้
+[P:Normal] 2. สร้างเธรดพิเศษขึ้นมา 1 ตัว ทำหน้าที่เป็นผู้รับสัญญาณแต่เพียงผู้เดียว โดยเธรดนี้จะเรียกใช้ฟังก์ชัน sigwait(&set, &sig) ซึ่งเป็นการนอนหลับรอคอยสัญญาณแบบ Synchronous
+[P:Normal] 3. sigwait thread รับสัญญาณในชุดที่กำหนดและดำเนินการในบริบทเธรดปกติ จึงหลีกเลี่ยงข้อจำกัดหลายอย่างของ asynchronous handlers แต่ยังต้องประสานข้อมูลที่แชร์กับ worker ตามปกติ [Butenhof, 1997]
+[P:Heading 2] 7.4 หน่วยความจำเฉพาะเธรด (Thread-Local Storage: TLS)
+[P:Normal] ในบางสถานการณ์ โปรแกรมเมอร์ต้องการตัวแปรประเภท Global Variable เพื่อให้สามารถเข้าถึงได้จากทุกฟังก์ชันโดยไม่ต้องส่งผ่านพารามิเตอร์ แต่ต้องการให้ตัวแปรนั้น "มีสำเนาเฉพาะตัวแยกกันเป็นอิสระสำหรับแต่ละเธรด" แนวคิดนี้เรียกว่า Thread-Local Storage (TLS) [Drepper, 2007]
+[P:Normal] ใน C11 ใช้ _Thread_local; GCC มี __thread เป็น extension ส่วน C++11 ใช้ thread_local implementation อาจเข้าถึง TLS ผ่านฐาน FS/GS บน x86-64 ต้นทุนขึ้นกับ TLS model และ dynamic linking การแยกสำเนาตัวแปรช่วยลดการแชร์ แต่ไม่ได้รับประกันความปลอดภัยของข้อมูลอื่นที่ pointer ใน TLS อ้างถึง [Drepper, 2007]
+[P:Heading 2] 7.5 สถาปัตยกรรมเธรดพูล (Thread Pools Architecture)
+[P:Normal] ในแอปพลิเคชันประเภทเซิร์ฟเวอร์ (เช่น เว็บเซิร์ฟเวอร์หรือเซิร์ฟเวอร์ฐานข้อมูล) การสร้างเธรดใหม่ตามคำขอของผู้ใช้แบบไม่จำกัด (Unbounded Thread Creation) นำไปสู่ปัญหาความเสี่ยง 2 ประการ: (1) เวลาที่สูญเสียไปกับการสร้างและทำลายเธรดซ้ำๆ และ (2) วิกฤตการณ์หน่วยความจำหมด (Out-of-Memory / Resource Exhaustion) เมื่อมีคำขอเข้ามาพร้อมกันหลักหมื่นรายการ สถาปัตยกรรม "เธรดพูล" (Thread Pool) จึงถูกพัฒนาขึ้นเพื่อเป็นเกราะป้องกัน ดังแสดงในรูปที่ 7.1 [Silberschatz et al., 2018]
+
+[TABLE: 1x1]
+Client Requests ---> [ Task Queue (คิวงานแบบ FIFO) ]                                 |              +------------------+------------------+              ↓                  ↓                  ↓      [ Worker Thread 1 ] [ Worker Thread 2 ] [ Worker Thread 3 ]  (Thread Pool)              ↓                  ↓                  ↓      [  ประมวลผลงาน  ]   [  ประมวลผลงาน  ]   [  ประมวลผลงาน  ]              ↓                  ↓                  ↓              +------------------+------------------+                                 | คืนตัวกลับสู่พูลเพื่อรอรับงานใหม่
+[END TABLE]
+
+[P:Normal] รูปที่ 7.1 สถาปัตยกรรมการทำงานของ Thread Pool
+[P:Normal] หลักการทำงานเชิงวิศวกรรม:
+[P:Normal] 1. เมื่อเซิร์ฟเวอร์เริ่มต้น ระบบจะทำการสร้างกลุ่มของเธรดเตรียมไว้ล่วงหน้าตามจำนวนที่เหมาะสม (เรียกว่า Worker Threads ขนาดคงที่ เช่น 16 หรือ 32 เธรดตามจำนวนคอร์)
+[P:Normal] 2. เมื่อมีคำขอจากไคลเอนต์ส่งเข้ามา คำขอจะถูกนำไปบรรจุไว้ใน คิวงานส่วนกลาง (Task Queue)
+[P:Normal] 3. เธรดในพูลที่กำลังว่างอยู่ จะทำการดึงงานออกจากคิวไปประมวลผลทันที
+[P:Normal] 4. เมื่อเธรดประมวลผลงานชิ้นนั้นเสร็จสิ้น เธรดจะไม่ถูกทำลายทิ้ง แต่จะส่งสถานะตนเองกลับมารอรับงานชิ้นถัดไปในพูลต่อไป [Silberschatz et al., 2018]
+[P:Normal] Thread pool ลดการสร้างเธรดซ้ำและจำกัดจำนวน worker แต่การป้องกันทรัพยากรหมดต้องจำกัดขนาด task queue และ application state รวมทั้งมี backpressure ด้วย ไม่ใช่จำนวน worker คงที่ทำให้ทรัพยากรรวมมีเพดานโดยอัตโนมัติ
+
+
+==================== บทที่ 8: ====================
+
+[P:Heading 1] บทที่ 8: กรณีศึกษาระดับเคอร์เนล: การวิเคราะห์เปรียบเทียบ Linux vs Windows (Kernel Case Studies)
+[P:Heading 2] 8.1 มัลติเธรดในระบบปฏิบัติการ Linux: ปรัชญา "Everything is a Task"
+[P:Normal] ปรัชญาการออกแบบระบบเธรดในเคอร์เนลของ Linux มีลักษณะเฉพาะตัวตามหลักการออกแบบระบบ ในขณะที่ระบบปฏิบัติการอื่นมีการสร้างโครงสร้างข้อมูลที่ซับซ้อนแยกต่างหากระหว่างโพรเซสและเธรด แต่ระบบปฏิบัติการ Linux กลับยึดมั่นในปรัชญาพื้นฐานว่า:
+[P:Normal] > “Linux ไม่มีการแบ่งแยกความแตกต่างระหว่าง Process และ Thread ในระดับเคอร์เนล โดยเคอร์เนลจะมองทุกหน่วยของการประมวลผลเป็นเพียง 'ภารกิจ' (Task) ภายใต้โครงสร้างข้อมูล `task_struct` เดียวกันทั้งหมด” [Love, 2010]
+[P:Normal] ในมุมมองของ Linux Kernel โพรเซสคือ Task ตัวหนึ่ง และเธรดก็คือ Task ตัวหนึ่งเช่นเดียวกัน สิ่งเดียวที่สร้างความแตกต่างระหว่าง "โพรเซสแบบดั้งเดิม" กับ "เธรด" ในระบบ Linux คือ "ระดับของการแบ่งปันทรัพยากร" (Resource Sharing Degrees) ระหว่าง Task เหล่านั้นเท่านั้น [Bovet & Cesati, 2005]
+[P:Normal] โครงสร้าง `task_struct` และตัวชี้ทรัพยากร:
+[P:Normal] ภายในโครงสร้าง task_struct ของเคอร์เนล Linux จะไม่มีการฝังข้อมูลขนาดใหญ่ไว้โดยตรง แต่จะบรรจุตัวชี้ (Pointers) ชี้ไปยังโครงสร้างข้อมูลการจัดการทรัพยากรย่อยๆ:
+[P:Normal] struct mm_struct *mm: pointer ไปยังบริบท virtual memory และ page tables
+[P:Normal] struct files_struct *files: pointer ไปยัง file descriptor table
+[P:Normal] struct fs_struct *fs: pointer ไปยัง root/current directories และ filesystem context เช่น umask
+[P:Normal] struct sighand_struct *sighand: pointer ไปยัง signal-handler table; struct signal_struct *signal เป็นอีกโครงสร้างสำหรับข้อมูลระดับ thread group [Love, 2010; Linux Kernel Documentation, n.d.]
+[P:Normal] การแชร์ mm/files/sighand เป็นมิติของการแชร์ทรัพยากร แต่ไม่ได้กำหนด thread-group membership เพียงอย่างเดียว CLONE_THREAD ทำให้ task อยู่ใน thread group เดียวกันและมี TGID เดียวกัน จึงต้องพิจารณาแฟล็กและ semantics ร่วมกัน [Love, 2010]
+[P:Normal] หัวใจของการสร้างเธรดใน Linux: ซิสเต็มคอล `clone()`
+[P:Normal] glibc และ threading library ใช้บริการสร้าง task ของเคอร์เนล โดยเส้นทางอาจใช้ clone/clone3 หรือ syscall ที่เกี่ยวข้องตามเวอร์ชันและสถาปัตยกรรม เคอร์เนลใช้โครงสร้างภายในร่วมกันสำหรับการสร้าง task แต่ไม่ควรอ้างว่า API ทุกตัวเรียก clone แบบเดียวกันเสมอ [Linux man-pages, n.d.]
+[P:Normal] ซิสเต็มคอล clone() มีความยืดหยุ่นสูงยิ่งยวด โดยเปิดโอกาสให้ผู้เรียกสามารถกำหนด "แฟล็กควบคุมการแบ่งปันทรัพยากร" (Sharing Flags) ได้อย่างอิสระ:
+[P:Normal] * CLONE_VM: หากตั้งค่าแฟล็กนี้ Task ลูกจะแชร์หน่วยความจำเสมือนและ Page Table เดียวกันกับ Task แม่ (คุณสมบัติของเธรด)
+[P:Normal] * CLONE_FS: Task ลูกจะแชร์ข้อมูลระบบไฟล์และ Working Directory ร่วมกับแม่
+[P:Normal] * CLONE_FILES: Task ลูกจะแชร์ตารางไฟล์ที่เปิดไว้ร่วมกัน ทำให้การเปิด/ปิดไฟล์ส่งผลถึงกัน
+[P:Normal] * CLONE_SIGHAND: Task ลูกจะแชร์ตารางจัดการสัญญาณร่วมกับแม่
+[P:Normal] `CLONE_THREAD`: บังคับให้ Task ลูกถูกจัดเข้าเป็นสมาชิกใน Thread Group เดียวกัน* กับ Task แม่ โดยมีค่า Thread Group ID (TGID) เดียวกัน [Love, 2010]
+[P:Normal] การเปรียบเทียบการเรียกใช้ `clone()`:
+[P:Normal] fork สร้าง child ที่ไม่แชร์ address space แบบ CLONE_VM แต่ใช้ Copy-on-Write และสืบทอดทรัพยากรบางอย่าง สำหรับ glibc wrapper ที่ใช้ raw clone ต้องคำนึงถึง SIGCHLD และแฟล็ก implementation ไม่ใช่ระบุ flags = 0 เป็นรายการเต็ม [Linux man-pages, n.d.]
+[P:Normal] pthread_create ของ NPTL ใช้แฟล็กแชร์ทรัพยากรหลักดังตัวอย่างต่อไปนี้ รายการนี้ไม่ใช่ syscall flags ทั้งหมดของ implementation:
+[P:Normal] CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD
+[P:Normal] แฟล็กเหล่านี้กำหนดการแชร์ทรัพยากรหลักและ thread group; implementation ยังมีแฟล็กอื่นสำหรับ TLS และ thread IDs จึงไม่ได้หมายความว่าแชร์ทรัพยากรทุกอย่างโดยไม่มีสถานะเฉพาะเธรด [Love, 2010]
+[P:Normal] ระบบจัดตารางเวลาของ Linux: Completely Fair Scheduler (CFS)
+[P:Normal] CFS ใช้เป็นพื้นฐานของ fair scheduling ตั้งแต่ Linux 2.6.23 และเหมาะกับคำอธิบาย Linux 6.5 ที่เป็นเวอร์ชันทดสอบ ตั้งแต่ Linux 6.6 มีการเปลี่ยน fair scheduling ไปสู่ EEVDF ต้องแยกเวอร์ชันเมื่อกล่าวถึง vruntime และการเลือก task [Love, 2010; Linux Kernel Documentation, n.d.]
+[P:Normal] กลไกการทำงานของ CFS:
+[P:Normal] 1. Virtual Runtime (`vruntime`): CFS จะติดตามเวลาที่แต่ละเธรดได้รับบนซีพียูผ่านตัวแปรระดับนาโนวินาทีที่เรียกว่า vruntime เธรดที่มีระดับความสำคัญสูง (Nice value ต่ำ) เวลา vruntime จะเดินช้ากว่าเธรดที่มีความสำคัญต่ำ
+[P:Normal] 2. โครงสร้างข้อมูล Red-Black Tree (ต้นไม้แดงดำ): CFS จัดเก็บเธรดที่พร้อมทำงาน (Ready Tasks) ไว้ในโครงสร้างต้นไม้ Red-Black Tree แบบปรับสมดุลตนเอง โดยเรียงลำดับตามค่า vruntime จากน้อยไปหามาก:
+[P:Normal] เธรดที่อยู่ทาง ซ้ายสุดของต้นไม้ (Leftmost Node)* คือเธรดที่ได้รับเวลาซีพียูน้อยที่สุดและมีความยุติธรรมต่ำสุดในขณะนั้น
+[P:Normal] * เมื่อซีพียูว่างลง CFS จะดึงเธรดที่อยู่ซ้ายสุดขึ้นมาประมวลผลทันทีด้วยความเร็ว O(1)
+[P:Normal] * เมื่อเธรดนั้นประมวลผลไป ค่า vruntime ของมันจะเพิ่มขึ้น และถูกแทรกกลับเข้าไปในต้นไม้ใหม่ด้วยความเร็ว O(\log N) [Love, 2010]
+[P:Normal] มิติการจัดกลุ่มโดเมนการจัดตารางเวลา (Scheduling Domains):
+[P:Normal] เพื่อรองรับระบบ Multi-Core ขนาดยักษ์ CFS ได้จัดโครงสร้างซีพียูออกเป็น Scheduling Domains ตามลำดับชั้นของฮาร์ดแวร์: เริ่มต้นจากระดับ SMT Domain (คอร์เสมือนที่แชร์ Execution Units), ขยายสู่ Multi-Core Domain (แชร์แคช L3), และระดับ NUMA Domain (ข้ามซ็อกเก็ต) CFS จะพยายามรักษาเธรดให้อยู่ในโดเมนแคชเดิมเพื่อคงความอุ่นของแคช และจะดำเนินการเกลี่ยงานข้ามโดเมน (Load Balancing) ก็ต่อเมื่อเกิดความไม่สมดุลของภาระงานอย่างรุนแรงเท่านั้น [Love, 2010]
+[P:Heading 2] 8.2 มัลติเธรดในระบบปฏิบัติการ Microsoft Windows
+[P:Normal] แตกต่างจากปรัชญาความเรียบง่ายของ Linux ระบบปฏิบัติการ Microsoft Windows (สถาปัตยกรรม Windows NT จนถึง Windows 11) ถูกออกแบบโครงสร้างระดับเคอร์เนลให้มีการแบ่งชั้นอย่างเข้มงวดตามหลักการของ Object-Oriented Operating System [Yosifovich et al., 2017]
+[P:Normal] โครงสร้างเธรดแบบสองระดับชั้นใน Windows Kernel:
+[P:Normal] Windows แยกโครงสร้างข้อมูลของเธรดออกเป็น 2 ชั้นอย่างชัดเจน:
+[P:Normal] 1. `KTHREAD` (Kernel Thread Block): อยู่ในระดับ Microkernel Layer บรรจุข้อมูลพื้นฐานสำหรับการจัดตารางเวลา เช่น รีจิสเตอร์สถานะซีพียู, สแตกพอยน์เตอร์, ลำดับความสำคัญ (Priority 0–31), สถานะของเธรด (Ready, Running, Standby, Waiting), และโครงสร้าง Affinity Mask
+[P:Normal] 2. `ETHREAD` (Executive Thread Block): อยู่ในระดับ Executive Layer ซึ่งทำหน้าที่ห่อหุ้มโครงสร้าง KTHREAD ไว้อีกชั้นหนึ่ง บรรจุข้อมูลการจัดการระดับสูง เช่น Process ID, Thread ID, แอดเดรสเริ่มต้นของเธรด (Start Address), โทเค็นความปลอดภัย (Access Token / Impersonation Token), และโครงสร้าง I/O Pending Requests ดังแสดงในรูปที่ 8.1 [Yosifovich et al., 2017]
+
+[TABLE: 1x1]
++--------------------------------------------------------------+ |            ETHREAD (Executive Thread Block)                  | |  - Thread ID / Client ID                                     | |  - Impersonation Security Token                              | |  - I/O Pending Requests List                                 | |  +--------------------------------------------------------+  | |  |           KTHREAD (Kernel Thread Block)                |  | |  |  - Execution State & Priority (0-31)                   |  | |  |  - Processor Context (Registers, RIP, RSP)             |  | |  |  - Kernel Stack Pointers & Scheduling Quantum          |  | |  +--------------------------------------------------------+  | +--------------------------------------------------------------+
+[END TABLE]
+
+[P:Normal] รูปที่ 8.1 โครงสร้างข้อมูลเธรดระดับเคอร์เนลในระบบปฏิบัติการ Windows
+[P:Normal] แนวคิด Fibers และ User-Mode Scheduling (UMS) ใน Windows
+[P:Normal] นอกเหนือจากเธรดมาตรฐานระดับเคอร์เนลแล้ว ระบบปฏิบัติการ Windows ยังได้นำเสนอกลไก Concurrency ทางเลือกที่เรียกว่า "Fibers" [Yosifovich et al., 2017]:
+[P:Normal] กลไกการทำงานของ Fibers:
+[P:Normal] Fiber คือหน่วยการประมวลผลแบบ User-mode Concurrency ที่ทำงานแบบ Cooperative Multitasking* (การทำงานร่วมกันแบบสมัครใจ)
+[P:Normal] * การสลับบริบทระหว่าง Fiber ไม่ได้ถูกควบคุมโดย Kernel Scheduler โปรแกรมเมอร์จะต้องเป็นผู้เขียนโค้ดสั่งสลับบริบทด้วยตนเองอย่างชัดเจนผ่านฟังก์ชัน SwitchToFiber() ในระดับ User Space [Yosifovich et al., 2017]
+[P:Normal] ⚠️ ข้อเท็จจริงเชิงสถาปัตยกรรม: แม้การสลับ Fiber จะทำใน User Mode โดยไม่ผ่านเคอร์เนล แต่ "Thread ที่ทำหน้าที่เป็นโฮสต์รัน Fiber เหล่านั้น ยังคงเป็น Kernel Thread ที่ถูกควบคุมและจัดตารางเวลาโดย Windows Kernel Scheduler ตามปกติ"* หากเธรดโฮสต์นั้นถูกเคอร์เนลสั่ง Preempt หรือติดบล็อก I/O ไฟเบอร์ทั้งหมดที่อาศัยอยู่บนเธรดนั้นจะหยุดชะงักตามไปด้วย
+[P:Normal] User-Mode Scheduling (UMS):
+[P:Normal] UMS เป็นกลไก user-mode scheduling ที่มี kernel support สำหรับโปรแกรม 64-bit บนแพลตฟอร์มและ Windows รุ่นที่รองรับ ตั้งแต่ Windows 7/Server 2008 R2 ถึง Windows 10 รุ่น 21H2 และ Windows Server 2022 ตามเอกสาร Microsoft แต่ไม่รองรับ Windows 11 และไม่ใช่ Fibers การใช้งานต้องตรวจข้อกำหนดเวอร์ชัน/สถาปัตยกรรม [Microsoft, n.d.]
+[P:Heading 2] 8.3 สถาปัตยกรรมฮาร์ดแวร์ขั้นสูง: ระบบ Non-Uniform Memory Access (NUMA)
+[P:Normal] ในสถาปัตยกรรมเซิร์ฟเวอร์ขนาดใหญ่และซีพียูหลายซ็อกเก็ต (Multi-Socket Enterprise Systems) ข้อจำกัดด้านแบนด์วิดท์ของหน่วยความจำทำให้ไม่สามารถใช้สถาปัตยกรรมแบบสมมาตรดั้งเดิม (Symmetric Multiprocessing: SMP) ได้อีกต่อไป ผู้ผลิตฮาร์ดแวร์จึงเปลี่ยนมาใช้สถาปัตยกรรม Non-Uniform Memory Access (NUMA) ดังแสดงในรูปที่ 8.2 [Lameter, 2013]
+
+[TABLE: 1x1]
++---------------------------+             +---------------------------+ |        NUMA Node 0        |             |        NUMA Node 1        | |  [ CPU Cores 0 - 7 ]      |             |  [ CPU Cores 8 - 15 ]     | |             ↓ (เร็วมาก)   |             |             ↓ (เร็วมาก)   | |  [ Local Memory: RAM 0 ]  |             |  [ Local Memory: RAM 1 ]  | +---------------------------+             +---------------------------+               ↕                                         ↕               +====== [ High-Speed Interconnect Bus ] ==+                       (การเข้าถึงข้ามโหนด: ความหน่วงเวลาสูง)
+[END TABLE]
+
+[P:Normal] รูปที่ 8.2 สถาปัตยกรรมระบบแบบ Non-Uniform Memory Access (NUMA)
+[P:Normal] ผลกระทบต่อประสิทธิภาพของมัลติเธรด:
+[P:Normal] ในระบบ NUMA ซีพียูแต่ละกลุ่ม (Node) จะมีหน่วยความจำแรมเป็นของตนเอง (Local Memory) ซึ่งสามารถอ่านเขียนได้ด้วยความเร็วสูงสุด แต่หากเธรดบน Node 0 ต้องการเข้าถึงข้อมูลที่อยู่ใน RAM ของ Node 1 (Remote Memory) คำสั่งจะต้องวิ่งผ่าน Interconnect Bus ข้ามซ็อกเก็ต ซึ่งมี ความหน่วงเวลา (Latency) สูงกว่าปกติ 2 ถึง 3 เท่าตัว [Lameter, 2013]
+[P:Normal] หากเคอร์เนลปล่อยให้เธรดย้ายคอร์ข้ามไปมาระหว่าง Node 0 และ Node 1 อย่างอิสระ (Core Migration) จะทำให้เกิด Remote Memory Access ตลอดเวลา ส่งผลให้ประสิทธิภาพการทำงานลดลงอย่างมีนัยสำคัญ ระบบปฏิบัติการสมัยใหม่จึงต้องมีนโยบาย NUMA-Aware Scheduling* เพื่อพยายามรักษาเธรดและหน่วยความจำให้อยู่ใน Node เดียวกัน [Love, 2010]
+[P:Normal] การตรึงเธรดกับคอร์และการควบคุมความผูกพัน (CPU Pinning & Thread Affinity)
+[P:Normal] เพื่อแก้ไขปัญหาความล่าช้าในระบบ NUMA และลดผลกระทบจากการสูญเสียความอุ่นของแคช วิศวกรระบบสามารถควบคุมความผูกพันระหว่างเธรดกับคอร์ประมวลผล (Processor Affinity) ได้โดยตรงผ่านฟังก์ชันระดับเคอร์เนล [Love, 2010]:
+[P:Normal] 1. การล็อกเธรดในระบบ Linux (POSIX Extension):
+[P:Normal] ในระบบปฏิบัติการ Linux สามารถใช้คำสั่ง pthread_setaffinity_np() เพื่อระบุบิตมาสก์ของคอร์ (CPU Set Mask) ที่อนุญาตให้เธรดนั้นทำงานได้:
+
+[TABLE: 1x1]
+cpu_set_t cpuset; CPU_ZERO(&cpuset); CPU_SET(2, &cpuset); // logical CPU ID 2; ตรวจ topology ก่อนเลือก pthread_setaffinity_np(thread_handle, sizeof(cpuset), &cpuset);
+[END TABLE]
+
+[P:Normal] หรือใช้คำสั่งเชลล์ระดับระบบ: taskset -c 0,2 ./my_program [Love, 2010]
+[P:Normal] 2. ประโยชน์ทางวิศวกรรมของการทำ CPU Pinning:
+[P:Normal] Affinity ช่วยลดการย้าย logical CPU และอาจรักษา locality ได้ แต่ไม่ทำให้ zero cache invalidation หรือรับประกันว่าข้อมูล L1/L2 อยู่ครบ การแข่งขัน แคช replacement และ coherence ยังเกิดขึ้นได้
+[P:Normal] การตัดปัญหา Remote Memory Latency ในระบบ NUMA:* สามารถจัดสรรหน่วยความจำให้อยู่บน Node เดียวกันกับคอร์ที่เธรดทำงานอยู่ผ่านคำสั่ง numactl --cpunodebind=0 --membind=0
+[P:Normal] การลดความหน่วงเวลาของระบบเรียลไทม์ (Deterministic Latency):* เหมาะอย่างยิ่งสำหรับระบบประมวลผลสัญญาณ ซอฟต์แวร์เทรดเดอร์ความถี่สูง (HFT) และเซิร์ฟเวอร์ฐานข้อมูล [Lameter, 2013]
+[P:Heading 2] 8.4 การวิเคราะห์เปรียบเทียบสถาปัตยกรรมระดับเคอร์เนล: Linux vs. Windows
+[P:Normal] จากการศึกษาสถาปัตยกรรมภายในของทั้งสองระบบปฏิบัติการ ตารางที่ 8.1 สรุปการเปรียบเทียบเชิงวิศวกรรมระหว่างระบบมัลติเธรดของ Linux และ Windows [Love, 2010; Yosifovich et al., 2017]:
+[P:Normal] ตารางที่ 8.1: การเปรียบเทียบสถาปัตยกรรมมัลติเธรดระหว่าง Linux และ Windows
+
+[TABLE: 8x3]
+มิติทางสถาปัตยกรรม | ระบบปฏิบัติการ Linux (NPTL) | ระบบปฏิบัติการ Windows (NT Kernel)
+ปรัชญาพื้นฐาน (Philosophy) | "Everything is a Task" ไม่แยก Process และ Thread ในเคอร์เนล | Object-Oriented แบ่งแยก Process และ Thread ชัดเจน
+โครงสร้างข้อมูลหลัก (Data Structure) | โครงสร้างเดี่ยว task_struct (ระบุผ่าน Thread Group ID) | โครงสร้างสองชั้น: ETHREAD ห่อหุ้ม KTHREAD
+ซิสเต็มคอลการสร้าง (Creation Call) | ซิสเต็มคอลเดียว clone() ควบคุมผ่าน Sharing Flags | ซิสเต็มคอลระดับลึก NtCreateThreadEx() ในเคอร์เนล
+แบบจำลองการจับคู่ (Thread Model) | One-to-One (1:1) ดั้งเดิม | One-to-One; Fibers เป็นทางเลือก และ UMS รองรับเฉพาะบางเวอร์ชัน ไม่รวม Windows 11
+อัลกอริทึมจัดตารางเวลา (Scheduler) | CFS ใน Linux 6.5; fair scheduling รุ่นใหม่เปลี่ยนสู่ EEVDF ตั้งแต่ 6.6 | Priority-driven Preemptive Scheduler (32 ลำดับความสำคัญ)
+กลไกการซิงโครไนซ์หลัก (Fast Lock) | Linux Futex: ล็อกใน User Space หากไม่มี Contention | Slim Reader/Writer (SRW) Locks และ Critical Sections
+ความจุและประสิทธิภาพ (Performance) | น้ำหนักเบามาก สลับเธรดได้รวดเร็ว เหมาะกับ Cloud & Server | มีความปลอดภัยสูง ฟีเจอร์ระดับองค์กรครบถ้วน รองรับ GUI สมบูรณ์
+[END TABLE]
+
+
+
+==================== บทที่ 9: ====================
+
+[P:Heading 1] บทที่ 9: อนาคตและวิวัฒนาการ: Concurrency ในระดับ User-Space (Modern Concurrency Paradigms)
+[P:Heading 2] 9.1 ขีดจำกัดของ OS Threads กับสถาปัตยกรรม Web Scale ยุคใหม่ (The C10K & C1000K Problems)
+[P:Normal] ในช่วงปลายทศวรรษที่ 1990 Dan Kegel ได้นำเสนอบทความวิชาการที่เป็นหมุดหมายสำคัญของวงการเซิร์ฟเวอร์ เรื่อง "The C10K Problem" (ความท้าทายในการทำให้เว็บเซิร์ฟเวอร์เครื่องเดียวสามารถรองรับการเชื่อมต่อของไคลเอนต์ได้พร้อมกัน 10,000 การเชื่อมต่อในเวลาเดียวกัน) และในยุคคลาวด์ปัจจุบัน ปัญหานี้ได้ทวีความรุนแรงขึ้นสู่ "The C1000K Problem" (การรองรับ 1,000,000 การเชื่อมต่อพร้อมกัน) [Kegel, 1999]
+[P:Normal] ปัญหา C10K ได้เปิดโปงให้เห็น "ขีดจำกัดทางสถาปัตยกรรมของ OS Threads" ในระบบ One-to-One (1:1) อย่างรุนแรง ในสถาปัตยกรรมเว็บเซิร์ฟเวอร์แบบดั้งเดิม (เช่น Apache HTTP Server ยุคแรก) ระบบจะใช้แนวทาง "หนึ่งการเชื่อมต่อต่อหนึ่งเธรด" (One Thread per Connection):
+[P:Normal] * เมื่อมีผู้ใช้งาน 10,000 คนเชื่อมต่อเข้ามาพร้อมกัน ระบบปฏิบัติการจะต้องสร้าง OS Threads ขึ้นมา 10,000 เธรด
+[P:Normal] * หากผู้ใช้งานเพิ่มเป็น 100,000 คน ระบบจะต้องสร้าง 100,000 เธรด
+[P:Normal] ผลลัพธ์คือ "ภาวะระบบปฏิบัติการชะงักงันเนื่องจากทรัพยากรหมดลง" (Kernel Depletion / Collapse)* ซีพียูใช้เวลาส่วนใหญ่ไปกับการสลับบริบทและการกวาดคิวงานของเคอร์เนล โดยไม่สามารถจัดสรรเวลาไปประมวลผลงานจริงของผู้ใช้ได้อย่างมีประสิทธิภาพ [Kegel, 1999]
+[P:Normal] ข้อจำกัดด้านหน่วยความจำของ OS Thread Stack
+[P:Normal] อุปสรรคทางกายภาพที่ทำให้ระบบปฏิบัติการไม่สามารถสร้าง OS Threads ปริมาณมหาศาลได้ คือ "ขนาดของ Thread Stack" [Drepper, 2007]:
+[P:Normal] ขนาด user stack ของ OS thread ขึ้นกับระบบและ attributes สำหรับ Linux NPTL ค่า RLIMIT_STACK ณ เริ่มโปรแกรมอาจกำหนด default stack; ค่า 2 MiB เป็นค่า fallback บางสถาปัตยกรรมเมื่อ limit เป็น unlimited ไม่ใช่ default ของทุกเครื่อง Windows ก็แยก stack reservation กับ commitment ต้องระบุค่าของระบบจริง [Linux man-pages, n.d.]
+[P:Normal] การจอง stack เสมือน 2 MiB สำหรับ 100,000 เธรดใช้พื้นที่เสมือนประมาณ 195.3 GiB โดยไม่ได้ใช้ physical RAM เท่ากันทั้งหมด เพราะ pages ถูก commit ตามการใช้งาน แต่ยังมี overhead อื่นและข้อจำกัดทรัพยากร
+[P:Normal] แต่ละ kernel-scheduled thread ยังมี kernel context และ kernel stack ซึ่งมีขนาดและนโยบายจัดสรรตามสถาปัตยกรรม/เวอร์ชัน จำนวนเธรดมากจึงมีต้นทุนจริง แต่ไม่ควรระบุว่าหน่วยความจำหมดทันทีโดยไม่มีขนาดและขีดจำกัดของเครื่อง [Love, 2010]
+[P:Normal] การก้าวข้ามขีดจำกัด:
+[P:Normal] สัจธรรมที่ว่า "เธรดของระบบปฏิบัติการมีน้ำหนักมากเกินไปสำหรับระบบ Web Scale" ได้จุดชนวนให้เกิดการปฏิวัติกระบวนทัศน์ Concurrency ขึ้นใหม่อีกครั้ง โดยเปลี่ยนจากการพึ่งพา OS Thread ในระดับเคอร์เนล ไปสู่การสร้าง "เธรดน้ำหนักเบาพิเศษในระดับรันไทม์ของผู้ใช้" (User-space Lightweight Concurrency) [The Go Authors, 2024; Pressler & Bateman, 2023]
+[P:Heading 2] 9.2 การเกิดใหม่ของ User-Space Lightweight Concurrency
+[P:Normal] 1. กอรูทีนในภาษา Go (Goroutines: Dynamic 2KB Concurrency)
+[P:Normal] ภาษา Go (พัฒนาโดย Google) เป็นผู้บุกเบิกการปฏิวัติระบบ Concurrency ยุคใหม่ผ่านแนวคิด "Goroutines" ซึ่งทำหน้าที่เป็นหน่วยย่อยของการประมวลผลที่จัดการโดย Go Runtime ทั้งหมด [The Go Authors, 2024]
+[P:Normal] นวัตกรรมสถาปัตยกรรมของ Goroutines:
+[P:Normal] 1. ขนาดสแตกเริ่มต้นขนาดจิ๋ว (Tiny Initial Stack Size):
+[P:Normal] Goroutine มักเริ่มด้วย stack ขนาดเล็กประมาณ 2 KiB ใน Go runtime รุ่นที่อ้าง และสามารถขยายได้ ต้นทุนรวมยังมี goroutine metadata, stack growth และ application state จำนวนที่รองรับบน RAM 16 GB จึงขึ้นกับงานจริง ไม่รับประกันหลายล้านตัวสำหรับทุกโปรแกรม [The Go Authors, 2024]
+[P:Normal] 2. สแตกแบบขยายตัวได้แบบพลวัต (Dynamic Contiguous Stack Allocation):
+[P:Normal] Go runtime ขยาย stack เมื่อจำเป็น โดยย้ายข้อมูลไป stack ที่ใหญ่กว่า และสามารถลดขนาดในช่วงที่ runtime ตรวจสอบตามเงื่อนไข ไม่ใช่หดทันทีทุกครั้งที่ฟังก์ชัน return [The Go Authors, 2024]
+
+[TABLE: 1x1]
+OS Thread Stack  : [================== 1,024 KB to 2,048 KB ==================] Goroutine Stack  : [ 2 KB ] (ขยายตัวได้เองตามจริง)
+[END TABLE]
+
+[P:Normal] รูปที่ 9.1 การเปรียบเทียบขนาดหน่วยความจำเริ่มต้นระหว่างเคอร์เนลเธรดและ Goroutine
+[P:Normal] สถาปัตยกรรม Go Runtime Scheduler: แบบจำลอง M:N Work-Stealing
+[P:Normal] เบื้องหลังประสิทธิภาพการประมวลผลขั้นสูงของภาษา Go คือตัวจัดตารางเวลา Go M:N Work-Stealing Scheduler ซึ่งสร้างแบบจำลองสถาปัตยกรรมขึ้นจาก 3 องค์ประกอบหลัก (The M-P-G Model) ดังแสดงในรูปที่ 9.2 [The Go Authors, 2024]:
+[P:Normal] G (Goroutine):* ตัวแทนของ Goroutine แต่ละตัว บรรจุสแตกและ Program Counter
+[P:Normal] M (Machine / OS Thread):* ตัวแทนของ Kernel Thread จริงของระบบปฏิบัติการ
+[P:Normal] P (Processor): execution context ของ Go runtime มีจำนวนตาม GOMAXPROCS ซึ่งเป็นค่าที่ตั้งได้และอาจกำหนดจากทรัพยากรที่มองเห็น ไม่จำเป็นต้องเท่ากับ physical cores ของเครื่อง แต่ละ P มี local run queue [The Go Authors, 2024]
+
+[TABLE: 1x1]
+[ Kernel Space ]       [ OS Thread: M 0 ]            [ OS Thread: M 1 ]                                |                              | [ Go Runtime ]                 ↓                              ↓                        [ Processor: P 0 ]            [ Processor: P 1 ]                        [ Local Runqueue ]            [ Local Runqueue ]                        | G 1 | G 2 | G 3 |           | G 4 | (ว่างเปล่า) |                                                              ↑                                     ขโมยงาน (Work Stealing) --+
+[END TABLE]
+
+[P:Normal] รูปที่ 9.2 สถาปัตยกรรม Go M-P-G Work-Stealing Scheduler
+[P:Normal] อัลกอริทึมการขโมยงาน (Work-Stealing Algorithm):
+[P:Normal] เมื่อ scheduler พบงานในคิวอื่นสามารถขโมยงานมาช่วยกระจายโหลดได้ Work stealing ลดโอกาสที่ worker ว่างขณะมี runnable work แต่ไม่รับประกันทุกคอร์ทำงานเต็ม 100% ตลอดเวลา เพราะงานอาจรอ I/O, lock, GC หรือมี parallelism ไม่เพียงพอ [The Go Authors, 2024]
+[P:Normal] 2. เวอร์ชวลเธรดใน Java 21 (Virtual Threads: Project Loom)
+[P:Normal] ในโลกของภาษา Java ซึ่งในอดีตยึดมั่นกับโมเดล One-to-One OS Thread มาตั้งแต่ Java 1.2 ได้เกิดการเปลี่ยนแปลงครั้งยิ่งใหญ่ที่สุดในรอบ 25 ปี ในการเปิดตัว Java 21 LTS (ปลายปี ค.ศ. 2023) ผ่านโครงการ Project Loom (JEP 444: Virtual Threads) [Pressler & Bateman, 2023]
+[P:Normal] การปฏิวัติสถาปัตยกรรม Virtual Threads:
+[P:Normal] Virtual Threads ถูกสร้างขึ้นโดยมีเป้าหมายเพื่อ "รักษารูปแบบการเขียนโค้ดสไตล์ Synchronous ที่อ่านและดีบักง่าย แต่ได้ประสิทธิภาพและ Throughput เทียบเท่ากับ Asynchronous / Reactive Programming" [Pressler & Bateman, 2023]:
+[P:Normal] Carrier Threads เป็น platform/OS threads ที่ JVM ใช้รัน virtual threads ขนาด scheduler parallelism มีค่าเริ่มต้นและการตั้งค่าตาม runtime ไม่จำเป็นต้องมีจำนวนเท่ากับ physical cores ตลอดเวลา
+[P:Normal] เมื่อ virtual thread ทำ blocking operation ที่ runtime รองรับ มักสามารถ unmount จาก carrier ได้ แต่ Java 21 มีข้อยกเว้นเรื่อง pinning เช่นภายใน synchronized และ native/foreign calls:
+[P:Normal] ในเส้นทางที่ unmount ได้ runtime เก็บสถานะ/stack ของ virtual thread ไว้ใน heap เพื่อรอการทำงานต่อ
+[P:Normal] carrier จึงพร้อมรับ virtual thread อื่น อย่างไรก็ดีเมื่อถูก pinned การ blocking อาจตรึง carrier ไปด้วยและจำกัด scalability
+[P:Normal] * เมื่อข้อมูล I/O จากเครือข่ายเดินทางมาถึง JVM จะนำ Virtual Thread เดิมกลับมา Mount ลงบน Carrier Thread ตัวใดก็ได้ที่ว่างอยู่เพื่อทำงานต่อ [Pressler & Bateman, 2023]
+[P:Normal] Virtual threads เน้นเพิ่ม concurrency/throughput สำหรับงานรอ I/O ไม่ใช่เร่ง CPU-intensive code จำนวนงานที่รองรับขึ้นกับหน่วยความจำ connection limits และ application resources ต้องประเมิน pinning และ backpressure ตาม Java 21 [Oracle, 2023]
+[P:Heading 2] 9.3 การวิเคราะห์เปรียบเทียบกระบวนทัศน์ Concurrency แห่งอนาคต
+[P:Normal] เพื่อให้วิศวกรซอฟต์แวร์สามารถเลือกใช้เทคโนโลยีได้อย่างถูกต้อง ตารางที่ 9.1 ได้เปรียบเทียบ 3 กระบวนทัศน์หลักในการรับมือกับปัญหา Concurrency ยุคปัจจุบัน [Kegel, 1999; The Go Authors, 2024; Pressler & Bateman, 2023]:
+[P:Normal] ตารางที่ 9.1: การเปรียบเทียบกระบวนทัศน์ Concurrency ยุคใหม่
+
+[TABLE: 7x4]
+มิติการเปรียบเทียบ | Multi-threaded (OS Thread 1:1) | Single-threaded Event Loop | Lightweight User Threads
+ตัวอย่างเทคโนโลยี | Java ดั้งเดิม, C Pthreads, C# | Node.js, Nginx, Python Asyncio | Go (Goroutines), Java 21 (Loom)
+หน่วยความจำต่อหน่วย | ขึ้นกับ stack reservation/commit และ attributes ของระบบ | มี event-loop stack แต่แต่ละงานยังใช้ request state และ buffers | ขึ้นกับ runtime; Go เริ่ม stack เล็ก ส่วน Java จัดเก็บ stack ใน heap
+รูปแบบการเขียนโค้ด | Synchronous Blocking (อ่านง่าย) | Asynchronous Callbacks / Promises | Synchronous Blocking (อ่านง่ายที่สุด)
+การรองรับ Multi-Core | สูงมาก (เคอร์เนลกระจายลงคอร์จริง) | loop เดียวไม่รัน JS/Python handlers หลายคอร์เอง; ขยายด้วย workers/processes ตามเทคโนโลยี | สูงมาก (Runtime กระจายลงหลายคอร์)
+ความยากในการดีบัก | ปานกลาง มี Stack Trace ครบถ้วน | ยากมาก (Stack Trace ขาดตอนจาก Callback) | ง่ายมาก มี Stack Trace สมบูรณ์
+จุดคอขวดที่ต้องระวัง | แรมเคอร์เนลหมด และ Context Switch สูง | ห้ามรันคำสั่ง CPU หนัก (จะบล็อกทั้ง Loop) | การจัดการ Garbage Collection ของ Heap
+[END TABLE]
+
+[P:Normal] Lightweight tasks ของ runtime เป็นทางเลือกที่ลดต้นทุนต่อ concurrent task และรักษารูปแบบโค้ดที่อ่านง่าย แต่ยังต้องควบคุม resource limits, synchronization, GC และพฤติกรรม blocking การเลือกใช้ขึ้นกับ workload แทนการถือว่าเป็นทางเลือกที่สมบูรณ์สำหรับทุกระบบ [The Go Authors, 2024; Oracle, 2023]
+
+
+==================== บทที่ 10: ====================
+
+[P:Heading 1] บทที่ 10: การอภิปรายผลเชิงวิพากษ์ กรอบการตัดสินใจ และบทสรุป (Critical Discussion, Decision Matrix & Conclusion)
+[P:Heading 2] 10.1 การอภิปรายผลการศึกษาและการทดลองเชิงวิพากษ์ (Critical Synthesis)
+[P:Normal] จากการศึกษาเชิงทฤษฎีสถาปัตยกรรมระบบ การวิเคราะห์ซอร์สโค้ดระดับเคอร์เนล และการดำเนินการทดลองเชิงประจักษ์ทั้งหมดในรายงานฉบับนี้ สามารถนำมาสังเคราะห์เพื่อตอบ คำถามหลักของการวิจัย 4 ประการ ที่ตั้งไว้ตั้งแต่บทที่ 1 ได้อย่างชัดเจนและมีหลักฐานเชิงประจักษ์รองรับ:
+[P:Normal] 1. มัลติเธรดช่วยเพิ่มประสิทธิภาพเมื่อใด และมีต้นทุนแฝงอะไรบ้าง?
+[P:Normal] คำตอบเชิงวิศวกรรม:* มัลติเธรดจะเพิ่ม Throughput ได้สูงสุดเฉพาะเมื่อภาระงานสามารถแยกส่วนขนานกันได้อย่างเป็นอิสระ (Embarrassingly Parallel) และจำนวนเธรดที่ใช้งานจะต้องสอดคล้องกับธรรมชาติของงาน:
+[P:Normal] สำหรับ CPU-bound ควรประเมินจำนวน worker เทียบกับ physical cores, SMT และ CPU set แล้ววัดหลายเงื่อนไข ข้อมูลนี้ดีที่สุดที่ 12 เธรด ไม่ใช่เงื่อนไขบังคับว่าต้องเท่ากับคอร์กายภาพพอดี
+[P:Normal] ต้นทุนแฝงที่มองไม่เห็น (Hidden Overheads) ได้แก่: การสูญเสียประสิทธิภาพจากการเกิด Involuntary Context Switches เมื่อมีเธรดมากเกินไป, อัตราการเกิด LLC Cache Misses* ที่เพิ่มสูงขึ้นอย่างมีนัยสำคัญจากการแย่งชิงพื้นที่แคช L3, และการอิ่มตัวของช่องสัญญาณบัส (Memory Bus Saturation) [Drepper, 2007]
+[P:Normal] 2. แบบจำลองการจับคู่เธรดสร้างความแตกต่างอย่างไร?
+[P:Normal] โมเดล 1:1 ให้ kernel scheduling โดยตรง ส่วน M:N ของ runtime ลดต้นทุนต่อ logical task ได้ จำนวนที่รองรับจริงขึ้นกับหน่วยความจำ stack growth, I/O resources และ application state จึงไม่มีเพดานหลักหมื่นหรือความสามารถล้านงานที่รับประกันเหมือนกันทุกระบบ
+[P:Normal] การอภิปรายจุดหักเห (Inflection Point) และการพิสูจน์แบบจำลอง USL
+[P:Normal] 3. คอขวดของการประสานเวลาเกิดขึ้นที่จุดใด?
+[P:Normal] การแย่งชิงล็อกอาจเพิ่ม cache-coherence traffic และลด throughput แต่ชุดข้อมูลเวลาที่ให้มายังไม่แยกผลของอัลกอริทึมและฮาร์ดแวร์ได้โดยเด็ดขาด ควรเพิ่มการวัด retry counts, cache-to-cache traffic และการทดลองควบคุมก่อนระบุว่าบัสเป็นคอขวดหลัก [Drepper, 2007]
+[P:Normal] 4. แบบจำลองคณิตศาสตร์ใดสอดคล้องกับความเป็นจริงที่สุด?
+[P:Normal] Amdahl ประเมิน fixed-workload scaling ภายใต้สมมติฐานอุดมคติ ส่วน USL เพิ่มพจน์ contention/coherency เพื่ออธิบาย retrograde scaling ได้ อย่างไรก็ดีพารามิเตอร์ที่ระบุในบทที่ 6 ยังไม่ทำนายการลดลงระหว่าง 12 และ 16 เธรด จึงยังสรุปไม่ได้ว่า USL เป็นแบบจำลองเดียวที่แม่นยำที่สุด และไม่มีการทดลอง scaled workload เพื่อเปรียบเทียบ Gustafson โดยตรง
+
+[TABLE: 1x1]
+เพิ่ม runnable threads ภายใน CPU set             ↓ อาจเพิ่ม preemption และการแข่งขันใช้ทรัพยากร             ↓ วัดเวลา counters และตรวจเงื่อนไขการรัน             ↓ ประสิทธิภาพอาจลดลงหลังจำนวน worker ที่เหมาะสม
+[END TABLE]
+
+[P:Normal] รูปที่ 10.1 วงจรการลดลงของประสิทธิภาพเมื่อเกิดภาวะจัดสรรเธรดเกินพิกัด (Over-subscription)
+[P:Heading 2] 10.2 กรอบการตัดสินใจทางวิศวกรรมสำหรับสถาปนิกซอฟต์แวร์ (Engineering Decision Framework)
+[P:Normal] เพื่อเป็นประโยชน์ในเชิงปฏิบัติการแก่วิศวกรระบบและสถาปนิกซอฟต์แวร์ รายงานฉบับนี้ได้สังเคราะห์ "แผนผังการตัดสินใจเชิงวิศวกรรม" (Architecture Decision Flowchart) สำหรับการเลือกใช้สถาปัตยกรรม Concurrency ให้เหมาะสมกับบริบทของระบบ ดังแสดงในรูปที่ 10.2:
+
+[TABLE: 1x1]
+เลือก Concurrency Model   ├─ ต้องการ isolation สูง → ประเมินหลายโพรเซสและ sandbox   └─ ใช้ address space ร่วมกันได้        ├─ CPU-bound → ทดลอง thread pool หลายขนาดตาม cores/SMT/CPU set        └─ I/O-bound → ประเมิน thread pool, event loop หรือ lightweight tasks                      ตาม concurrent load, latency และ resource limits
+[END TABLE]
+
+[P:Normal] รูปที่ 10.2 แผนผังการตัดสินใจเลือกใช้แบบจำลองภาวะพร้อมกัน (Concurrency Model Decision Flowchart)
+[P:Normal] ตารางสังเคราะห์สถาปัตยกรรมเปรียบเทียบ (Architecture Decision Matrix)
+[P:Normal] ตารางที่ 10.1 สรุปการประเมินมิติทางวิศวกรรมในเชิงลึก เพื่อเป็นเกณฑ์ในการเปรียบเทียบข้อดีและข้อจำกัดของแต่ละทางเลือก [Silberschatz et al., 2018; Kegel, 1999; Pressler & Bateman, 2023]:
+[P:Normal] ตารางที่ 10.1: ตารางตัดสินใจเปรียบเทียบเทคโนโลยี Concurrency เชิงวิศวกรรม
+
+[TABLE: 7x5]
+มิติการประเมิน | Multiprocessing | OS Thread Pool (1:1) | Non-blocking Event Loop | Virtual Threads / Goroutines
+ขอบเขตความปลอดภัย (Fault Isolation) | สูงมาก (แยกโปรเซสสมบูรณ์) | ต่ำ (1 เธรดแครช ส่งผลทั้งโปรเซส) | ต่ำ (ทำงานในโพรเซสเดียว) | ต่ำ (ทำงานในโพรเซสเดียว)
+ประสิทธิภาพงาน CPU-Bound | ปานกลาง (หน่วยความจำสูง) | สูงมาก (ปราศจาก Runtime Overhead) | ต่ำ (ไม่เหมาะกับงานคำนวณหนัก) | สูง (เทียบเท่าเคอร์เนลเธรด)
+ประสิทธิภาพงาน I/O-Bound | ปานกลาง-ต่ำ (จำกัดจำนวนโปรเซส) | ปานกลาง (จำกัดตามจำนวนเธรดเคอร์เนล) | สูง (อัตรา Throughput สูง) | สูงมาก (Throughput สูงและขยายขนาดได้ดี)
+ความจุการเชื่อมต่อพร้อมกัน (Concurrency Capacity) | ขึ้นกับ workload และ resource limits | ขึ้นกับ stack และทรัพยากรเคอร์เนล | ขึ้นกับ event handling และ request state | ขึ้นกับ runtime และทรัพยากรของแอปพลิเคชัน
+ความซับซ้อนในการพัฒนาและบำรุงรักษา | ปานกลาง (ต้องจัดการกลไก IPC) | ปานกลาง (ต้องควบคุมการซิงโครไนซ์) | สูง (ความซับซ้อนของ Asynchronous) | ต่ำ (เขียนโปรแกรมแบบ Synchronous ดั้งเดิม)
+กรณีการใช้งานที่เหมาะสม | สถาปัตยกรรมเบราว์เซอร์, เครื่องมือรันโค้ด Sandbox | งานคำนวณทางวิทยาศาสตร์, กราฟิก 3D, เกมเอนจิน | Reverse Proxy, API Gateway | เว็บแอปพลิเคชันยุคใหม่, บริการไมโครเซอร์วิส
+[END TABLE]
+
+[P:Heading 2] 10.3 ข้อจำกัดของการศึกษาและการทดลอง (Limitations of the Study)
+[P:Normal] เพื่อความโปร่งใสทางวิชาการและเป็นแนวทางสำหรับการศึกษาต่อยอด รายงานฉบับนี้มีข้อพึงระวังและข้อจำกัดทางสภาพแวดล้อม 3 ประการ:
+[P:Normal] 1. ข้อจำกัดด้านสถาปัตยกรรมฮาร์ดแวร์ทดสอบ (Testbed Architecture Limitations):
+[P:Normal] การทดลองหลักดำเนินการบนซีพียูระดับเดสก์ท็อป/แล็ปท็อป (Intel Core i7-12700H) ซึ่งเป็นสถาปัตยกรรมหน่วยความจำแบบ Unified Memory (SMP) ที่มีขนาดแคช L3 แบบจำกัด (24 MB) และใช้สถาปัตยกรรมคอร์แบบไฮบริด (P-Core + E-Core) แม้ว่าจะมีการควบคุมด้วยการตรึงคอร์ (Core Pinning) แต่พฤติกรรมบางประการอาจมีความแตกต่างจากสถาปัตยกรรมเซิร์ฟเวอร์องค์กรขนาดใหญ่ที่เป็นแบบหลายซ็อกเก็ต (Multi-Socket Enterprise NUMA Systems) ซึ่งมีบัสการสื่อสารระหว่างซ็อกเก็ตที่ซับซ้อนกว่า [Lameter, 2013]
+[P:Normal] 2. สัญญาณรบกวนจากระบบปฏิบัติการทั่วไป (General-Purpose OS Jitter):
+[P:Normal] การลดบริการเบื้องหลังและเลือก governor ไม่กำจัด OS jitter หรือทำให้ความถี่คงที่โดยอัตโนมัติ ควรบันทึก turbo/frequency behavior, background load และตัวชี้วัดระหว่างรัน ทั้ง CV ต่ำและการใช้ระบบ real-time ก็ไม่ใช่หลักฐานว่าไม่มีสัญญาณรบกวนทั้งหมด
+[P:Normal] 3. ข้อจำกัดของภาระงานทดสอบสังเคราะห์ (Synthetic Workloads):
+[P:Normal] Matrix และ I/O simulations เป็น synthetic workloads ผลไม่ครอบคลุมทุกระบบจริง การทำซ้ำต้องมีโค้ดและคำสั่งครบสำหรับ affinity, warm-up, measured runs, I/O configuration และ counter aggregation การเปลี่ยนโค้ดหรือเงื่อนไขการทดลองต้องเก็บข้อมูลชุดใหม่ ไม่ควรนำค่าชุดเดิมไปรับรองโปรแกรมที่ปรับเปลี่ยน [Mytkowicz et al., 2009]
+[P:Heading 2] 10.4 บทสรุปผลการศึกษาและการสังเคราะห์ทางวิศวกรรม (Conclusion)
+[P:Normal] จากการศึกษาค้นคว้าเชิงทฤษฎีสถาปัตยกรรมระบบปฏิบัติการร่วมกับการทดลองวัดผลเชิงประจักษ์ สามารถสรุปผลการศึกษาตามวัตถุประสงค์ของรายงานทั้ง 5 ข้อ ได้ดังนี้:
+[P:Normal] 1. เธรดแชร์ address space และทรัพยากรระดับโพรเซส แต่มีบริบทรีจิสเตอร์ stack และ TLS ของแต่ละตัว user stack ไม่ใช่พื้นที่ป้องกันจากเธรดอื่น และ guard region ขึ้นกับการตั้งค่า การสลับภายใน address space เดียวกันลดต้นทุนบางส่วน แต่ไม่รับประกันว่าจะไม่มี TLB/cache misses [Silberschatz et al., 2018; Drepper, 2007]
+[P:Normal] 2. ด้านการเปรียบเทียบระหว่างโพรเซสและเธรด: ยืนยันการแลกเปลี่ยนผลประโยชน์ (Trade-off) ระหว่างประสิทธิภาพและความปลอดภัย โดยมัลติเธรดให้ความเร็วในการสร้างและสลับงานสูงกว่ามัลติโพรเซสหลายเท่าตัว แต่มีขอบเขตความปลอดภัยต่ำ เนื่องจากข้อผิดพลาดร้ายแรงของเธรดใดเธรดหนึ่งจะส่งผลให้ทั้งโพรเซสยุติการทำงาน [Saltzer et al., 1984; Reis & Gribble, 2009]
+[P:Normal] 3. ในข้อมูลที่รายงาน Atomic CAS ใช้เวลาน้อยที่สุดในเงื่อนไขที่ทดสอบ แต่ประสิทธิภาพทั่วไปขึ้นกับ contention และ implementation ต้องใช้ atomic access ที่ถูกต้องและตรวจผลลัพธ์ ส่วน spinlock เหมาะกับการรอสั้นในบริบทที่ผู้ถือ lock ยังรันต่อได้ [Herlihy, 1991; Love, 2010]
+[P:Normal] 4. ข้อมูล CPU-bound มีเวลาต่ำสุดที่ 12 เธรดจากเงื่อนไขที่ทดสอบ และเวลาเพิ่มที่ 16 เธรด ส่วน USL parameters ที่ระบุยังไม่สอดคล้องกับการลดลงนี้ จำเป็นต้อง fit และประเมินความคลาดเคลื่อนใหม่ สำหรับ I/O-bound การเพิ่ม worker อาจซ่อนเวลารอได้ แต่ต้องพิจารณา throughput และ latency ร่วมกัน [Gunther, 2007; Mytkowicz et al., 2009]
+[P:Normal] 5. ด้านกรอบการตัดสินใจเชิงวิศวกรรม: การเลือกใช้แบบจำลองภาวะพร้อมกันขึ้นอยู่กับลักษณะของภาระงาน โดยสถาปัตยกรรมแบบ 1:1 เหมาะกับงานประมวลผลคำนวณที่ต้องการประสิทธิภาพสูงสุด, สถาปัตยกรรม Non-blocking Event Loop เหมาะกับงานเครือข่าย I/O, และแบบจำลอง Lightweight User Threads (Goroutines/Virtual Threads) เป็นทางเลือกที่รองรับการเชื่อมต่อระดับสูงควบคู่กับความสะดวกในการพัฒนา [Kegel, 1999; Pressler & Bateman, 2023]
+
+
+==================== เอกสารอ้างอิงและบรรณานุกรม ====================
+

@@ -1,0 +1,331 @@
+Total Pages: 113
+
+[Page   1] (Title) รายงานเชิงวิชาการวิชาระบบปฏิบัติการ (Operating Systems)
+[Page   2] (Heading 1) บทที่ 1: บทนำ ที่มา และกรอบการวิจัย (Introduction & Research Framework)
+[Page   2] (Heading 2) 1.1 ที่มาและความสำคัญของปัญหา (Background and Problem Statement)
+[Page   3] (Heading 2) 1.2 คำถามหลักของการวิจัย (Core Research Questions)
+[Page   3] (Normal) 1. ประสิทธิภาพและค่าโสหุ้ย (Speedup and Overhead): การประมวลผลแบบมัลติเธรดช่วยยกระดับ Throughput และ
+[Page   3] (Normal) 2. การแลกเปลี่ยนเชิงสถาปัตยกรรม (Architectural Trade-offs): แบบจำลองการจับคู่เธรด (1:1, M:1, M:N) สร
+[Page   3] (Normal) 3. คอขวดของการประสานเวลา (Synchronization Bottlenecks): เมื่อจำนวนคอร์ประมวลผลเพิ่มขึ้น คอขวดแท้จริง
+[Page   3] (Normal) 4. ความสมเหตุสมผลของแบบจำลองคณิตศาสตร์: แบบจำลองใดระหว่าง Amdahl's Law, Gustafson's Law, หรือ Univer
+[Page   3] (Heading 2) 1.3 วัตถุประสงค์ของรายงาน (Objectives)
+[Page   4] (Normal) 1. เพื่อศึกษาสถาปัตยกรรมภายใน โครงสร้างข้อมูล และกลไกการสลับบริบทของเธรด (Thread Context Switch) ในร
+[Page   4] (Normal) 2. เพื่อวิเคราะห์เปรียบเทียบเชิงลึกด้านต้นทุนค่าโสหุ้ย (Overhead) และความปลอดภัย (Fault Isolation) ร
+[Page   4] (Normal) 3. เพื่อวิเคราะห์กลไกการประสานเวลา (Synchronization Primitives) ตั้งแต่ระดับเคอร์เนล (Futex, Mutex, 
+[Page   4] (Normal) 4. เพื่อวัดผลประสิทธิภาพเชิงประจักษ์ (Empirical Benchmarking) ด้วยเครื่องมือ Profiling ระดับฮาร์ดแวร
+[Page   4] (Normal) 5. เพื่อสังเคราะห์กรอบการตัดสินใจเชิงวิศวกรรม (Engineering Decision Framework) ในการเลือกใช้ Concurr
+[Page   4] (Heading 2) 1.4 ขอบเขตการศึกษา (Scope of Study)
+[Page   5] (Heading 2) 1.5 ภาพรวมระเบียบวิธีวิจัยและประโยชน์ที่คาดว่าจะได้รับ (Methodology & Expected Benefits)
+[Page   5] (Heading 2) 1.6 ประโยชน์พื้นฐาน 4 ประการของการประมวลผลแบบมัลติเธรด (Four Major Benefits of Multithreading)
+[Page   5] (Normal) 1. การตอบสนองต่อผู้ใช้อย่างต่อเนื่อง (Responsiveness):
+[Page   5] (Normal) 2. การแบ่งปันทรัพยากรอย่างมีประสิทธิภาพ (Resource Sharing):
+[Page   6] (Normal) 3. ความประหยัดเชิงทรัพยากรและเวลา (Economy):
+[Page   6] (Normal) 4. การรองรับการขยายตัวบนซีพียูหลายคอร์ (Scalability on Multi-Core Systems):
+[Page   6] (Heading 2) 1.7 การเปรียบเทียบเชิงวิเคราะห์: Process vs. Thread (Analytical Comparison)
+[Page   7] (Normal) 1. ปริภูมิที่อยู่หน่วยความจำ (Address Space)
+[Page   7] (Normal) 2. ทรัพยากรส่วนตัว (Private State)
+[Page   7] (Normal) 3. ต้นทุนการสร้าง (Creation Overhead)
+[Page   7] (Normal) 4. การสลับบริบท (Context Switch Cost)
+[Page   7] (Normal) 5. กลไกการสื่อสาร (Inter-Communication)
+[Page   7] (Normal) 6. ขอบเขตความปลอดภัย (Fault Isolation)
+[Page   7] (Normal) 7. การซิงโครไนซ์ (Synchronization Need)
+[Page   8] (Heading 2) 1.8 บทวิเคราะห์เชิงวิศวกรรมต่อตารางเปรียบเทียบ (Critical Engineering Analysis)
+[Page  10] (Heading 1) บทที่ 2: สถาปัตยกรรมและโครงสร้างภายในของเธรด (Thread Architecture & Internals)
+[Page  10] (Heading 2) 2.1 โครงสร้างหน่วยความจำของโพรเซสที่มีหลายเธรด (Multithreaded Memory Layout)
+[Page  10] (Normal) 1. ทรัพยากรที่แบ่งปันร่วมกันทั้งโพรเซส (Process-Shared Resources):
+[Page  11] (Normal) 2. ทรัพยากรที่เป็นกรรมสิทธิ์เฉพาะตัวของแต่ละเธรด (Thread-Private Resources):
+[Page  12] (Heading 2) 2.2 บล็อกควบคุมเธรด (Thread Control Block: TCB)
+[Page  12] (Normal) 1. ตัวระบุเธรด (Thread Identifier: TID):
+[Page  12] (Normal) 2. สถานะรีจิสเตอร์ของซีพียู (CPU Context State):
+[Page  13] (Normal) 3. ข้อมูลการจัดตารางเวลา (Scheduling Attributes & Priority):
+[Page  13] (Normal) 4. ตัวชี้เชื่อมโยงโครงสร้างระบบ (Pointers to Parent PCB & Queues):
+[Page  15] (Heading 2) 2.3 วงจรชีวิตและสถานะของเธรด (Thread Lifecycle & State Transitions)
+[Page  15] (Normal) 1. สถานะแรกสร้าง (New / Created State):
+[Page  15] (Normal) 2. สถานะพร้อมทำงาน (Ready State):
+[Page  15] (Normal) 3. สถานะกำลังทำงาน (Running State):
+[Page  16] (Normal) 4. สถานะถูกปิดกั้นหรือรอคอย (Blocked / Waiting / Sleeping State):
+[Page  16] (Normal) 5. สถานะสิ้นสุดการทำงาน (Terminated / Zombie State):
+[Page  17] (Normal) 1. การหมดช่วงเวลาการทำงาน (Time-slice Expiration / Preemption): เมื่อเธรดใช้เวลาประมวลผลบนคอร์จนครบโ
+[Page  17] (Normal) 2. การร้องขอการดำเนินงานแบบปิดกั้น (Blocking System Calls): เมื่อเธรดเรียกใช้ I/O หรือพยายามเข้ายึด 
+[Page  17] (Normal) 3. การส่งสัญญาณแจ้งความพร้อม (Asynchronous Notification / Wakeup): เมื่อฮาร์ดแวร์ I/O ส่งสัญญาณ Inte
+[Page  17] (Normal) 4. การสละสิทธิ์โดยสมัครใจ (Voluntary Yielding): เธรดสามารถเรียกคำสั่งเช่น sched_yield() เพื่อสละการค
+[Page  17] (Heading 2) 2.4 กลไกการสลับบริบทของเธรด (Thread Context Switch Mechanics)
+[Page  18] (Normal) 1. การเข้าสู่โหมดเคอร์เนล (Entering Kernel Mode): เกิดขึ้นผ่านสัญญาณนาฬิกาฮาร์ดแวร์ (Timer Interrupt
+[Page  18] (Normal) 2. การบันทึกสถานะสถาปัตยกรรมเดิม (Saving Architecture State): เคอร์เนลจะทำการผลัก (Push) รีจิสเตอร์ค
+[Page  18] (Normal) 3. การตัดสินใจของระบบจัดตารางเวลา (Scheduler Decision): ฟังก์ชันหลักของเคอร์เนล (เช่น schedule() ใน 
+[Page  18] (Normal) 4. การสลับสแตกพอยน์เตอร์ (Switching Stack Pointers): เคอร์เนลจะดำเนินการสลับค่าในรีจิสเตอร์ RSP ของซ
+[Page  18] (Normal) 5. การคืนสถานะ: เคอร์เนลสลับไปยังบริบทของเธรดใหม่และกลับไปทำงานต่อในจุดที่ถูกระงับไว้ การกลับสู่ use
+[Page  19] (Normal) 1. กรณีการสลับระหว่างเธรดในโพรเซสเดียวกัน (Intra-process Thread Switch):
+[Page  19] (Normal) 2. กรณีการสลับระหว่างเธรดต่างโพรเซสกัน (Inter-process Thread Switch):
+[Page  20] (Heading 1) บทที่ 3: แบบจำลองมัลติเธรดและการจับคู่ระดับเคอร์เนล (Multithreading Models & Kernel Mapping)
+[Page  20] (Heading 2) 3.1 ระดับชั้นของเธรด (Thread Hierarchy: User-Level vs. Kernel-Level)
+[Page  20] (Normal) 1. เธรดระดับผู้ใช้ (User-Level Threads: ULT):
+[Page  21] (Normal) 2. เธรดระดับเคอร์เนล (Kernel-Level Threads: KLT):
+[Page  21] (Heading 2) 3.2 แบบจำลองการจับคู่เธรด (Thread Mapping Models)
+[Page  21] (Normal) 1. แบบจำลองหลายเธรดผู้ใช้ต่อหนึ่งเธรดเคอร์เนล (Many-to-One Model: M:1)
+[Page  22] (Normal) 2. แบบจำลองหนึ่งเธรดผู้ใช้ต่อหนึ่งเธรดเคอร์เนล (One-to-One Model: 1:1)
+[Page  23] (Normal) 3. แบบจำลองหลายเธรดผู้ใช้ต่อหลายเธรดเคอร์เนล (Many-to-Many Model: M:N) และ Two-Level Model
+[Page  24] (Heading 2) 3.3 การวิเคราะห์เปรียบเทียบเชิงวิศวกรรมของโมเดลมัลติเธรด (Comparative Analysis)
+[Page  25] (Heading 2) 3.4 บทวิเคราะห์เชิงวิพากษ์: ทำไมระบบปฏิบัติการกระแสหลักจึงละทิ้ง M:N แล้วยึดมั่นในโมเดล 1:1?
+[Page  26] (Normal) 1. การประสาน scheduler สองระดับ: แนวทาง Scheduler Activations ใช้ upcalls เพื่อแจ้งเหตุการณ์ แต่การร
+[Page  26] (Normal) 2. การพัฒนาเส้นทางเคอร์เนลและ NPTL: การปรับปรุง thread creation, synchronization และการจัดการ task ท
+[Page  26] (Normal) 3. ปัญหาการส่งต่อสัญญาณและการตรวจหาข้อผิดพลาด (Signal Inversion & Debuggability): การตรวจหาข้อผิดพลา
+[Page  28] (Heading 1) บทที่ 4: เธรดกับสถาปัตยกรรมฮาร์ดแวร์และทฤษฎีความเร็ว (Hardware Architecture & Scalability Laws)
+[Page  28] (Heading 2) 4.1 นิยามเชิงสถาปัตยกรรม: Concurrency กับ Parallelism
+[Page  28] (Normal) 1. การประมวลผลแบบ Concurrency (ภาวะพร้อมกัน):
+[Page  28] (Normal) 2. การประมวลผลแบบ Parallelism (การประมวลผลขนานแท้จริง):
+[Page  29] (Heading 2) 4.2 รูปแบบการทำงานแบบขนาน (Parallelism Paradigms)
+[Page  29] (Normal) 1. การขนานเชิงข้อมูล (Data Parallelism):
+[Page  29] (Normal) 2. การขนานเชิงภาระงาน (Task Parallelism):
+[Page  30] (Heading 2) 4.3 ทฤษฎีและแบบจำลองทางคณิตศาสตร์ในการวัดความเร็ว (Scalability Models)
+[Page  30] (Normal) 1. กฎของอัมดาห์ล (Amdahl’s Law: Fixed-Workload Speedup)
+[Page  31] (Normal) 2. กฎของกุสตาฟสัน (Gustafson-Barsis’s Law: Scaled-Workload Speedup)
+[Page  32] (Normal) 3. แบบจำลองความสามารถในการขยายขนาดสากล (Universal Scalability Law: USL)
+[Page  32] (Normal) 1. α (Contention Overhead): สะท้อนถึงการเข้าคิวรอคอยการเข้าถึงทรัพยากรส่วนกลางที่แชร์ร่วมกัน เช่น กา
+[Page  33] (Normal) 2. β (Coherency Overhead): สะท้อนถึงต้นทุนของการสื่อสารระหว่างคอร์เพื่อรักษาความถูกต้องของข้อมูล (Po
+[Page  33] (Heading 2) 4.4 เทคโนโลยีฮาร์ดแวร์ซีพียูที่เกี่ยวข้องกับเธรด
+[Page  33] (Normal) 1. เทคโนโลยีมัลติเธรดระดับฮาร์ดแวร์ (Simultaneous Multithreading: SMT & Hyper-Threading)
+[Page  34] (Normal) 2. ลำดับชั้นแคชและโปรโตคอลความสอดคล้อง (Cache Hierarchy & Coherency Protocol)
+[Page  35] (Normal) 1. M - Modified (ถูกแก้ไข): แคชไลน์นี้มีข้อมูลที่ถูกต้องล่าสุดอยู่เพียงคอร์นี้คอร์เดียว ข้อมูลใน DRA
+[Page  35] (Normal) 2. E - Exclusive (ครอบครองแต่ผู้เดียว): ข้อมูลในแคชไลน์นี้ตรงกับ DRAM หลัก และมีอยู่ในแคชของคอร์นี้เ
+[Page  35] (Normal) 3. S — Shared: แคชไลน์อยู่ในสถานะอ่านร่วมกัน การเขียนต้องขอสิทธิ์และเปลี่ยนสถานะพร้อม invalidate สำเ
+[Page  35] (Normal) 4. I - Invalid (ข้อมูลเป็นโมฆะ): แคชไลน์นี้ไม่มีข้อมูลที่ถูกต้อง ข้อมูลถูกทำลายโดยการเขียนของคอร์อื่
+[Page  35] (Normal) 3. ปัญหาการแชร์ข้อมูลเท็จ (False Sharing) และผลกระทบต่อประสิทธิภาพ
+[Page  36] (Normal) 4. แบบจำลองความสอดคล้องของหน่วยความจำและกำแพงกั้นคำสั่ง (Memory Consistency & Memory Barriers)
+[Page  38] (Heading 1) บทที่ 5: การประสานเวลาและกลไกระดับเคอร์เนล (Thread Synchronization & Kernel Primitives)
+[Page  38] (Heading 2) 5.1 ภาวะการแย่งชิงข้อมูล (Race Condition)
+[Page  38] (Normal) 1. MOV EAX, [counter]   ; ดึงค่าจาก RAM เข้าสู่รีจิสเตอร์ EAX ของซีพียู (Read)2. ADD EAX, 1        
+[Page  39] (Heading 2) 5.2 ส่วนวิกฤติและเกณฑ์ 3 ประการของไดจ์คสตรา (Critical Section & Dijkstra’s Criteria)
+[Page  39] (Normal) 1. การห้ามเข้าพร้อมกัน (Mutual Exclusion):
+[Page  39] (Normal) 2. ความก้าวหน้าของระบบ (Progress):
+[Page  40] (Normal) 3. การรอคอยที่มีขอบเขต (Bounded Waiting):
+[Page  40] (Heading 2) 5.3 กลไกการซิงโครไนซ์ระดับระบบปฏิบัติการ (Synchronization Primitives)
+[Page  40] (Normal) 1. มิวเท็กซ์ล็อก (Mutex Locks: Mutual Exclusion)
+[Page  41] (Normal) 2. สปินล็อก (Spinlocks: The Busy-Waiting Alternative)
+[Page  41] (Normal) 1. งานในส่วนวิกฤติสั้นมาก (Ultra-short Critical Section): หากการทำงานในส่วนวิกฤติใช้เวลาสั้นกว่าระยะ
+[Page  41] (Normal) 2. สถาปัตยกรรมแบบ Multi-Core: Spinlock จะมีประโยชน์ก็ต่อเมื่อเธรดผู้ถือครองล็อกกำลังประมวลผลอยู่บน "
+[Page  41] (Normal) 3. ใน interrupt context ที่ห้าม sleep: ต้องใช้ primitive ที่เหมาะกับบริบทและไม่ sleep เช่น spinlock 
+[Page  42] (Normal) 3. เซมาฟอร์ (Semaphores: Generalized Resource Controller)
+[Page  43] (Normal) 1. Counting Semaphore ใช้ควบคุมจำนวนทรัพยากรที่พร้อมใช้งาน K หน่วย เช่น connection slots 10 หน่วย ตั
+[Page  43] (Normal) 2. Binary Semaphore (เซมาฟอร์แบบทวิภาค): ค่าของเซมาฟอร์มีได้เพียง 0 และ 1 เท่านั้น ซึ่งทำหน้าที่เทีย
+[Page  43] (Normal) 4. ตัวแปรเงื่อนไข (Condition Variables: Signaling and Event-driven Sync)
+[Page  43] (Normal) 1. pthread_cond_wait(&cond, &mutex): ปลดล็อกมิวเท็กซ์โดยอัตโนมัติ และสั่งให้เธรดเข้าสู่นิทราในคิวรอค
+[Page  43] (Normal) 2. pthread_cond_signal(&cond): ส่งสัญญาณปลุกเธรดที่กำลังหลับอยู่ในคิวจำนวน 1 เธรดให้ตื่นขึ้นมาแข่งขั
+[Page  43] (Normal) 3. pthread_cond_broadcast(&cond): ส่งสัญญาณปลุกเธรดทั้งหมดที่กำลังหลับอยู่ในคิวให้ตื่นขึ้นมาพร้อมกัน
+[Page  44] (Heading 2) 5.4 กลไกการซิงโครไนซ์ขั้นสูงในระดับเคอร์เนลสมัยใหม่ (Modern Kernel Primitives)
+[Page  44] (Normal) 1. กลไก Linux Futex (Fast Userspace Mutex)
+[Page  45] (Normal) 1. เส้นทางเร็ว (Fast-Path / Uncontended Case):
+[Page  45] (Normal) 2. เส้นทางช้า (Slow-Path / Contended Case):
+[Page  45] (Normal) 2. การประมวลผลแบบไร้ล็อก (Lock-Free Synchronization & CAS)
+[Page  46] (Normal) 1. เธรด 1 อ่านค่าจากแอดเดรสหน่วยความจำ พบว่าเป็นค่า A
+[Page  46] (Normal) 2. เธรด 1 ถูกขัดจังหวะด้วย Context Switch
+[Page  46] (Normal) 3. เธรด 2 เข้ามาทำงาน เปลี่ยนค่าในแอดเดรสนั้นจาก A เป็น B และนำไปใช้งาน
+[Page  46] (Normal) 4. เธรด 2 หรือเธรด 3 ทำการเปลี่ยนค่านั้นจาก B กลับมาเป็น A อีกครั้ง (เช่น การนำโหนดเดิมกลับมาใช้ใหม่
+[Page  46] (Normal) 5. เธรด 1 สลับกลับมาทำงาน ดำเนินการคำสั่ง CAS โดยเปรียบเทียบค่าปัจจุบันกับค่าที่อ่านไว้แต่แรก พบว่าเ
+[Page  47] (Heading 2) 5.5 ภาวะติดตายและปัญหาคลาสสิกในระบบมัลติเธรด (Deadlock & Classic Concurrency Bugs)
+[Page  47] (Normal) 1. ภาวะติดตาย (Deadlock ในระดับเธรด)
+[Page  47] (Normal) 1. การห้ามใช้ร่วมกัน (Mutual Exclusion):
+[Page  47] (Normal) 2. การถือครองและรอคอย (Hold and Wait):
+[Page  47] (Normal) 3. การไม่สามารถช่วงชิงทรัพยากรคืนได้ (No Preemption):
+[Page  48] (Normal) 4. การรอคอยเป็นวงกลม (Circular Wait):
+[Page  49] (Heading 2) 5.6 ปัญหาการผกผันของลำดับความสำคัญ (Priority Inversion & Inheritance)
+[Page  49] (Normal) 1. T_L เริ่มทำงานก่อนและเข้าถือครองล็อก L
+[Page  49] (Normal) 2. ต่อมา T_H ตื่นขึ้นมาต้องการทำงาน และพยายามเข้าขอล็อก L เนื่องจากล็อกไม่ว่าง T_H จึงต้องเข้าสู่สถา
+[Page  49] (Normal) 3. แต่ในจังหวะนั้น เธรด T_M (ซึ่งไม่ต้องการล็อก L เลย) เกิดตื่นขึ้นมา เนื่องจาก T_M มี Priority สูงก
+[Page  50] (Normal) 4. ผลลัพธ์ร้ายแรง: T_L ไม่ได้ซีพียู จึงไม่มีโอกาสรันไปจนถึงจุดปลดล็อก L ทำให้ เธรดสำคัญสูงสุด (T_H) 
+[Page  51] (Heading 1) บทที่ 6: การทดลองและวัดผลประสิทธิภาพเชิงประจักษ์ (Implementation, Methodology & Empirical Benchmarki
+[Page  51] (Heading 2) 6.1 การอิมพลีเมนต์โปรแกรมทดสอบด้วยภาษา C (POSIX Pthreads)
+[Page  52] (Normal) 1. การลดโอกาส False Sharing ด้วยการแบ่งช่วงแถว:
+[Page  52] (Normal) 2. การสลับลำดับลูป i-k-j เพื่อเพิ่ม Spatial Locality (Loop Interchange):
+[Page  53] (Heading 2) 6.2 กรณีศึกษาเปรียบเทียบ: ข้อจำกัดของ Runtime Lock (Python GIL)
+[Page  54] (Normal) 1. Biased Reference Counting: ตัวแปรที่ถูกเข้าถึงโดยเธรดเดี่ยวจะใช้การนับแบบรวดเร็วโดยไม่ใช้คำสั่ง A
+[Page  54] (Normal) 2. Mimalloc Memory Allocator: การนำตัวจัดสรรหน่วยความจำประสิทธิภาพสูงของ Microsoft (Mimalloc) มาใช้ 
+[Page  54] (Normal) 3. Container Thread-Safety: CPython ใช้ per-object locks ป้องกัน list/dict/set และใช้ optimistic rea
+[Page  55] (Heading 2) 6.3 ระเบียบวิธีดำเนินการทดลองอย่างเป็นระบบตามมาตรฐานวิชาการ (Academic Methodology)
+[Page  55] (Normal) 1. รายละเอียดสภาพแวดล้อมระบบทดสอบ (Testbed Hardware & Software Environment):
+[Page  56] (Normal) 2. การเลือกชนิดของภาระงาน (Workload Selection):
+[Page  56] (Normal) 3. การควบคุมตัวแปรกวนและสภาพแวดล้อมการทดลอง (Control of Confounding Variables)
+[Page  57] (Normal) 4. เครื่องมือวัดผลระดับฮาร์ดแวร์ (Hardware Performance Profiling via Linux `perf`)
+[Page  58] (Normal) 1. Wall-Clock Execution Time (วินาที): เวลาที่ผู้ใช้สังเกตเห็นจริงนับตั้งแต่เริ่มต้นจนสิ้นสุดฟังก์ชั
+[Page  58] (Normal) 3. Instructions Per Cycle (IPC): อัตราส่วนระหว่างจำนวนคำสั่งที่ประมวลผลเสร็จสิ้น (Instructions Retir
+[Page  58] (Normal) 5. ระเบียบวิธีทางสถิติ (Statistical Rigor):
+[Page  59] (Heading 2) 6.4 ผลการทดลองและการนำเสนอข้อมูลเชิงประจักษ์ (Empirical Benchmark Results)
+[Page  59] (Heading 2) 3.2840 s
+[Page  59] (Normal) 1.00x
+[Page  59] (Normal) 1.00x
+[Page  59] (Heading 2) 1.6820 s
+[Page  59] (Normal) 1.95x
+[Page  59] (Normal) 1.90x
+[Page  59] (Heading 2) 0.8650 s
+[Page  59] (Normal) 3.80x
+[Page  59] (Normal) 3.48x
+[Page  60] (Heading 2) 0.5980 s
+[Page  60] (Normal) 5.49x
+[Page  60] (Normal) 4.80x
+[Page  60] (Heading 2) 0.5210 s
+[Page  60] (Normal) 6.30x
+[Page  60] (Normal) 5.93x
+[Page  60] (Heading 2) 0.4850 s
+[Page  60] (Normal) 6.77x
+[Page  60] (Normal) 7.74x
+[Page  60] (Heading 2) 0.5132 s
+[Page  60] (Normal) 6.40x
+[Page  60] (Normal) 9.14x
+[Page  60] (Normal) 1. ข้อมูลช่วง 1–6 เธรดให้ speedup เพิ่มขึ้นใกล้เชิงเส้น โดยที่ 6 เธรดได้ประมาณ 5.49 เท่า การจับคู่กั
+[Page  60] (Normal) 2. ที่ 8 และ 12 เธรด speedup ยังเพิ่มขึ้น หากใช้เฉพาะ 6 P-core เธรดเหล่านี้ใช้ hardware contexts ของ
+[Page  61] (Normal) 3. ที่ 16 เธรดเวลาเฉลี่ยเพิ่มเป็น 0.5132 วินาที ช้ากว่า 12 เธรด หากตรึงงานไว้ที่ 12 logical CPUs ของ
+[Page  62] (Heading 2) 0.806 ms
+[Page  62] (Normal) 4.2% (I/O Wait สูง)
+[Page  62] (Heading 2) 0.829 ms
+[Page  62] (Normal) 7.8%
+[Page  62] (Heading 2) 0.854 ms
+[Page  62] (Heading 2) 0.896 ms
+[Page  62] (Heading 2) 1.122 ms
+[Page  62] (Heading 2) 1.767 ms
+[Page  62] (Heading 2) 3.298 ms
+[Page  62] (Normal) 1. CPU-bound: จำนวน worker ที่เหมาะสมขึ้นกับ workload, SMT, memory bandwidth และ CPU set ที่อนุญาตให
+[Page  63] (Normal) 2. ในงาน I/O-Bound: จำนวนเธรดสามารถ ขยายตัวเกินจำนวนคอร์ทางกายภาพได้หลายเท่าตัว (N_threads ≫ N_cores
+[Page  63] (Heading 2) 2.42 IPC
+[Page  63] (Heading 2) 2.38 IPC
+[Page  63] (Heading 2) 1.89 IPC
+[Page  63] (Heading 2) 1.52 IPC
+[Page  63] (Heading 2) 1.14 IPC
+[Page  64] (Normal) 1. Involuntary Context Switches เพิ่มจาก 12 เป็น 4,210 ครั้ง: อาจสอดคล้องกับ preemption และการแข่งขั
+[Page  64] (Normal) 2. LLC misses เพิ่มจาก 142,500 เป็น 5,940,800 ครั้ง: บ่งชี้ว่าพฤติกรรมแคชเปลี่ยน แต่ยังไม่แยก capaci
+[Page  64] (Normal) 3. IPC ลดจาก 2.42 เป็น 1.14: แสดงว่าจำนวน instructions ต่อ cycles ลด แต่ไม่พิสูจน์ว่า pipeline ว่างห
+[Page  64] (Heading 2) 6.5 การวิเคราะห์ความสัมพันธ์ระหว่าง Synchronization Contention และ Throughput
+[Page  64] (Heading 2) 0.042 s
+[Page  64] (Heading 2) 0.028 s
+[Page  64] (Heading 2) 0.012 s
+[Page  64] (Heading 2) 0.185 s
+[Page  64] (Heading 2) 0.142 s
+[Page  64] (Heading 2) 0.045 s
+[Page  64] (Heading 2) 0.495 s
+[Page  64] (Heading 2) 0.612 s
+[Page  64] (Heading 2) 0.128 s
+[Page  65] (Heading 2) 1.120 s
+[Page  65] (Heading 2) 1.850 s
+[Page  65] (Heading 2) 0.340 s
+[Page  65] (Heading 2) 2.450 s
+[Page  65] (Heading 2) 5.820 s
+[Page  65] (Heading 2) 0.780 s
+[Page  65] (Normal) 1. ข้อจำกัดด้านประสิทธิภาพของ Spinlock เมื่อเกิดภาวะการแย่งชิงสูง (High Contention): ในช่วงที่จำนวนเ
+[Page  65] (Normal) 2. ในข้อมูลชุดนี้ Atomic CAS ใช้เวลาน้อยกว่า Mutex และ Spinlock ทุกจำนวนที่ทดสอบ แต่ไม่ใช่การรับประก
+[Page  65] (Normal) 1. ขีดจำกัดความเร็วของมัลติเธรดไม่ได้ขึ้นอยู่กับซีพียูเพียงอย่างเดียว แต่ถูกจำกัดโดยโครงสร้างลำดับชั
+[Page  66] (Normal) 2. จำนวนเธรดมีจุดเหมาะสมตาม workload และ CPU set ข้อมูลชุดนี้เร็วที่สุดที่ 12 เธรด และช้าลงเมื่อเพิ่
+[Page  66] (Normal) 3. การประสานเวลาอาจเป็นคอขวดสำคัญ การเลือก mutex, spinlock หรือ atomic operation ต้องพิจารณา critica
+[Page  67] (Heading 1) บทที่ 7: กลไกขั้นสูงในการจัดการเธรดระดับระบบปฏิบัติการ (Advanced Threading Mechanics)
+[Page  67] (Heading 2) 7.1 พฤติกรรมของ System Call `fork()` และ `exec()` ในระบบมัลติเธรด
+[Page  67] (Normal) 1. ข้อกำหนดตามมาตรฐาน POSIX (POSIX Specification & Modern Linux):
+[Page  68] (Normal) 1. prepare handler ทำงานก่อน fork ผู้พัฒนาอาจใช้เพื่อประสานล็อกที่โปรแกรมควบคุมได้ แต่ฟังก์ชันนี้ไม่
+[Page  68] (Normal) 2. parent handler ทำงานใน parent หลัง fork เพื่อคืนสถานะของล็อกหรือทรัพยากรที่ prepare จัดไว้ ตามโค้
+[Page  68] (Normal) 3. child handler ทำงานใน child หลัง fork แต่ไม่ได้รับประกันการรีเซ็ตล็อกทุกไลบรารีให้ปลอดภัย การจัดก
+[Page  69] (Heading 2) 7.2 การยกเลิกเธรด (Thread Cancellation)
+[Page  69] (Normal) 1. การยกเลิกแบบอะซิงโครนัส (Asynchronous Cancellation):
+[Page  69] (Normal) 2. การยกเลิกแบบหน่วงเวลา (Deferred Cancellation - รูปแบบมาตรฐาน):
+[Page  71] (Heading 2) 7.3 การจัดการสัญญาณในระบบมัลติเธรด (Signal Handling in Multithreaded Systems)
+[Page  71] (Normal) 1. สัญญาณแบบซิงโครนัส (Synchronous Signals):
+[Page  72] (Normal) 2. สัญญาณแบบอะซิงโครนัส (Asynchronous Signals):
+[Page  72] (Normal) 1. บล็อกชุดสัญญาณที่ต้องการให้ sigwait thread จัดการตั้งแต่ก่อนสร้าง worker ด้วย pthread_sigmask เพื
+[Page  72] (Normal) 2. สร้างเธรดพิเศษขึ้นมา 1 ตัว ทำหน้าที่เป็นผู้รับสัญญาณแต่เพียงผู้เดียว โดยเธรดนี้จะเรียกใช้ฟังก์ชัน
+[Page  72] (Normal) 3. sigwait thread รับสัญญาณในชุดที่กำหนดและดำเนินการในบริบทเธรดปกติ จึงหลีกเลี่ยงข้อจำกัดหลายอย่างขอ
+[Page  73] (Heading 2) 7.4 หน่วยความจำเฉพาะเธรด (Thread-Local Storage: TLS)
+[Page  73] (Heading 2) 7.5 สถาปัตยกรรมเธรดพูล (Thread Pools Architecture)
+[Page  74] (Normal) 1. เมื่อเซิร์ฟเวอร์เริ่มต้น ระบบจะทำการสร้างกลุ่มของเธรดเตรียมไว้ล่วงหน้าตามจำนวนที่เหมาะสม (เรียกว่
+[Page  74] (Normal) 2. เมื่อมีคำขอจากไคลเอนต์ส่งเข้ามา คำขอจะถูกนำไปบรรจุไว้ใน คิวงานส่วนกลาง (Task Queue)
+[Page  74] (Normal) 3. เธรดในพูลที่กำลังว่างอยู่ จะทำการดึงงานออกจากคิวไปประมวลผลทันที
+[Page  74] (Normal) 4. เมื่อเธรดประมวลผลงานชิ้นนั้นเสร็จสิ้น เธรดจะไม่ถูกทำลายทิ้ง แต่จะส่งสถานะตนเองกลับมารอรับงานชิ้นถ
+[Page  75] (Heading 1) บทที่ 8: กรณีศึกษาระดับเคอร์เนล: การวิเคราะห์เปรียบเทียบ Linux vs Windows (Kernel Case Studies)
+[Page  75] (Heading 2) 8.1 มัลติเธรดในระบบปฏิบัติการ Linux: ปรัชญา "Everything is a Task"
+[Page  77] (Normal) 1. Virtual Runtime (`vruntime`): CFS จะติดตามเวลาที่แต่ละเธรดได้รับบนซีพียูผ่านตัวแปรระดับนาโนวินาที
+[Page  77] (Normal) 2. โครงสร้างข้อมูล Red-Black Tree (ต้นไม้แดงดำ): CFS จัดเก็บเธรดที่พร้อมทำงาน (Ready Tasks) ไว้ในโคร
+[Page  78] (Heading 2) 8.2 มัลติเธรดในระบบปฏิบัติการ Microsoft Windows
+[Page  78] (Normal) 1. `KTHREAD` (Kernel Thread Block): อยู่ในระดับ Microkernel Layer บรรจุข้อมูลพื้นฐานสำหรับการจัดตารา
+[Page  78] (Normal) 2. `ETHREAD` (Executive Thread Block): อยู่ในระดับ Executive Layer ซึ่งทำหน้าที่ห่อหุ้มโครงสร้าง KTH
+[Page  80] (Heading 2) 8.3 สถาปัตยกรรมฮาร์ดแวร์ขั้นสูง: ระบบ Non-Uniform Memory Access (NUMA)
+[Page  81] (Normal) 1. การล็อกเธรดในระบบ Linux (POSIX Extension):
+[Page  81] (Normal) 2. ประโยชน์ทางวิศวกรรมของการทำ CPU Pinning:
+[Page  82] (Heading 2) 8.4 การวิเคราะห์เปรียบเทียบสถาปัตยกรรมระดับเคอร์เนล: Linux vs. Windows
+[Page  84] (Heading 1) บทที่ 9: อนาคตและวิวัฒนาการ: Concurrency ในระดับ User-Space (Modern Concurrency Paradigms)
+[Page  84] (Heading 2) 9.1 ขีดจำกัดของ OS Threads กับสถาปัตยกรรม Web Scale ยุคใหม่ (The C10K & C1000K Problems)
+[Page  85] (Heading 2) 9.2 การเกิดใหม่ของ User-Space Lightweight Concurrency
+[Page  85] (Normal) 1. กอรูทีนในภาษา Go (Goroutines: Dynamic 2KB Concurrency)
+[Page  85] (Normal) 1. ขนาดสแตกเริ่มต้นขนาดจิ๋ว (Tiny Initial Stack Size):
+[Page  86] (Normal) 2. สแตกแบบขยายตัวได้แบบพลวัต (Dynamic Contiguous Stack Allocation):
+[Page  87] (Normal) 2. เวอร์ชวลเธรดใน Java 21 (Virtual Threads: Project Loom)
+[Page  88] (Heading 2) 9.3 การวิเคราะห์เปรียบเทียบกระบวนทัศน์ Concurrency แห่งอนาคต
+[Page  90] (Heading 1) บทที่ 10: การอภิปรายผลเชิงวิพากษ์ กรอบการตัดสินใจ และบทสรุป (Critical Discussion, Decision Matrix & 
+[Page  90] (Heading 2) 10.1 การอภิปรายผลการศึกษาและการทดลองเชิงวิพากษ์ (Critical Synthesis)
+[Page  90] (Normal) 1. มัลติเธรดช่วยเพิ่มประสิทธิภาพเมื่อใด และมีต้นทุนแฝงอะไรบ้าง?
+[Page  90] (Normal) 2. แบบจำลองการจับคู่เธรดสร้างความแตกต่างอย่างไร?
+[Page  91] (Normal) 3. คอขวดของการประสานเวลาเกิดขึ้นที่จุดใด?
+[Page  91] (Normal) 4. แบบจำลองคณิตศาสตร์ใดสอดคล้องกับความเป็นจริงที่สุด?
+[Page  91] (Heading 2) 10.2 กรอบการตัดสินใจทางวิศวกรรมสำหรับสถาปนิกซอฟต์แวร์ (Engineering Decision Framework)
+[Page  93] (Heading 2) 10.3 ข้อจำกัดของการศึกษาและการทดลอง (Limitations of the Study)
+[Page  93] (Normal) 1. ข้อจำกัดด้านสถาปัตยกรรมฮาร์ดแวร์ทดสอบ (Testbed Architecture Limitations):
+[Page  94] (Normal) 2. สัญญาณรบกวนจากระบบปฏิบัติการทั่วไป (General-Purpose OS Jitter):
+[Page  94] (Normal) 3. ข้อจำกัดของภาระงานทดสอบสังเคราะห์ (Synthetic Workloads):
+[Page  94] (Heading 2) 10.4 บทสรุปผลการศึกษาและการสังเคราะห์ทางวิศวกรรม (Conclusion)
+[Page  94] (Normal) 1. เธรดแชร์ address space และทรัพยากรระดับโพรเซส แต่มีบริบทรีจิสเตอร์ stack และ TLS ของแต่ละตัว user
+[Page  94] (Normal) 2. ด้านการเปรียบเทียบระหว่างโพรเซสและเธรด: ยืนยันการแลกเปลี่ยนผลประโยชน์ (Trade-off) ระหว่างประสิทธิ
+[Page  95] (Normal) 3. ในข้อมูลที่รายงาน Atomic CAS ใช้เวลาน้อยที่สุดในเงื่อนไขที่ทดสอบ แต่ประสิทธิภาพทั่วไปขึ้นกับ cont
+[Page  95] (Normal) 4. ข้อมูล CPU-bound มีเวลาต่ำสุดที่ 12 เธรดจากเงื่อนไขที่ทดสอบ และเวลาเพิ่มที่ 16 เธรด ส่วน USL para
+[Page  95] (Normal) 5. ด้านกรอบการตัดสินใจเชิงวิศวกรรม: การเลือกใช้แบบจำลองภาวะพร้อมกันขึ้นอยู่กับลักษณะของภาระงาน โดยสถ
+[Page  96] (Heading 1) เอกสารอ้างอิงและบรรณานุกรม (References & Bibliography)
+[Page  96] (Normal) 1. ตำราเรียนมาตรฐานด้านระบบปฏิบัติการและสถาปัตยกรรม (Core Textbooks)
+[Page  97] (Normal) 2. เอกสารมาตรฐานและเปเปอร์วิชาการระดับคลาสสิก (Seminal Academic Papers)
+[Page  99] (Normal) 3. เอกสารทางการ ข้อกำหนดมาตรฐาน และเปเปอร์ระบบร่วมสมัย (Official Specs & Contemporary Papers)
+[Page  99] (Heading 1) เอกสารอ้างอิง: หลักการ fast userspace locking และกลไก futex ของ Linux
+[Page  99] (Heading 1) เอกสารอ้างอิง: การออกแบบ optional-GIL build และ CPython container synchronization
+[Page 103] (Heading 1) ภาคผนวก ก ซอร์สโค้ดและตัวอย่างฟังก์ชัน
+[Page 103] (Normal) 1. โปรแกรมคำนวณการคูณเมทริกซ์ด้วย POSIX Threads (ภาษา C มาตรฐาน C11)
+[Page 104] (Normal) 2. ซอร์สโค้ดการป้องกัน False Sharing ด้วย Memory Alignment ในภาษา C11
+[Page 105] (Normal) 3. ตัวอย่างฟังก์ชันตัวนับด้วย GCC Atomic CAS (ต้องตรวจ Lock-Free Support บนเป้าหมาย)
+[Page 106] (Normal) 4. สคริปต์ภาษา Python สำหรับทดสอบความเร็วระหว่าง Python Standard และ Free-threaded Build
+[Page 106] (Normal) 5. ซอร์สโค้ดภาษา Java 21 ทดสอบเปรียบเทียบ Platform Threads vs Virtual Threads (Project Loom)
+[Page 108] (Heading 1) ภาคผนวก ข: ตารางข้อมูลดิบจากการทดลองและสถิติ (Raw Benchmark Datasets & Statistics)
+[Page 108] (Normal) 3.291
+[Page 108] (Normal) 1.685
+[Page 108] (Normal) 3.280
+[Page 108] (Normal) 1.678
+[Page 108] (Normal) 3.275
+[Page 108] (Normal) 1.692
+[Page 108] (Normal) 3.310
+[Page 108] (Normal) 1.680
+[Page 108] (Normal) 3.268
+[Page 108] (Normal) 1.675
+[Page 108] (Normal) 3.288
+[Page 108] (Normal) 1.688
+[Page 108] (Normal) 3.272
+[Page 108] (Normal) 1.670
+[Page 108] (Normal) 3.305
+[Page 108] (Normal) 1.695
+[Page 108] (Normal) 3.262
+[Page 108] (Normal) 1.681
+[Page 108] (Normal) 3.289
+[Page 108] (Normal) 1.676
+[Page 108] (Normal) 3.2840
+[Page 108] (Normal) 1.6820
+[Page 108] (Normal) 2.43e-4
+[Page 108] (Normal) 6.27e-5
+[Page 108] (Normal) 2.84e-5
+[Page 108] (Normal) 2.49e-5
+[Page 108] (Normal) 3.22e-5
+[Page 108] (Normal) 3.31e-5
+[Page 108] (Normal) 6.91e-5
+[Page 109] (Normal) 1.09%
+[Page 109] (Normal) 1.19%
+[Page 109] (Normal) 1.62%
+[Page 109] (Normal) 2.42
+[Page 109] (Normal) 2.38
+[Page 109] (Normal) 1.89
+[Page 109] (Normal) 1.14
+[Page 110] (Heading 2) 3.284 วินาที
+[Page 110] (Heading 2) 0.865 วินาที
+[Page 110] (Heading 2) 0.521 วินาที
+[Page 110] (Heading 2) 0.5132 วินาที
+[Page 111] (Heading 1) ภาคผนวก ค: รายละเอียดสเปกเครื่องและการตั้งค่าระบบ (System Profile Outputs)
+[Page 111] (Normal) 1. ข้อมูลระบบที่รายงานจาก uname -a:
+[Page 111] (Normal) 2. สรุปสถาปัตยกรรมซีพียูและแคชจากข้อมูลระบบ:
+[Page 111] (Normal) 3. ผลลัพธ์คำสั่งตรวจสอบหน่วยความจำ `free -h`:
+[Page 111] (Normal) 4. ผลลัพธ์คำสั่งตรวจสอบเวอร์ชันคอมไพเลอร์ `gcc -v`:
